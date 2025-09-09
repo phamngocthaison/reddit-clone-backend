@@ -152,15 +152,27 @@ class RedditCloneStack(cdk.Stack):
 
     def _create_auth_lambda(self, execution_role: iam.Role) -> lambda_.Function:
         """Create Lambda function for authentication."""
-        # Get the path to the Lambda code
-        lambda_code_path = Path(__file__).parent.parent / "src" / "lambda" / "auth"
+        # Get the path to the Lambda code - use the entire project directory
+        lambda_code_path = Path(__file__).parent.parent
 
         auth_lambda = lambda_.Function(
             self,
             "AuthLambda",
             runtime=lambda_.Runtime.PYTHON_3_9,
-            handler="main.handler",
-            code=lambda_.Code.from_asset(str(lambda_code_path)),
+            handler="lambda_handler_standalone.handler",  # Use the standalone handler
+            code=lambda_.Code.from_asset(
+                str(lambda_code_path),
+                bundling=lambda_.BundlingOptions(
+                    image=lambda_.Runtime.PYTHON_3_9.bundling_image,
+                    command=[
+                        "bash", "-c",
+                        f"""
+                        pip install -r requirements-lambda.txt -t /asset-output &&
+                        cp lambda_handler_standalone.py /asset-output/
+                        """
+                    ]
+                )
+            ),
             role=execution_role,
             environment={
                 "USER_POOL_ID": self.user_pool.user_pool_id,
