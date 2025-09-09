@@ -10,6 +10,14 @@ from typing import Any, Dict, Optional
 from .models import AuthResponse
 
 
+class DateTimeEncoder(json.JSONEncoder):
+    """Custom JSON encoder for datetime objects."""
+    def default(self, obj):
+        if isinstance(obj, datetime):
+            return obj.isoformat() + "Z"
+        return super().default(obj)
+
+
 def create_response(status_code: int, body: AuthResponse) -> Dict[str, Any]:
     """Create API Gateway response."""
     return {
@@ -20,7 +28,7 @@ def create_response(status_code: int, body: AuthResponse) -> Dict[str, Any]:
             "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
             "Access-Control-Allow-Headers": "Content-Type, Authorization",
         },
-        "body": json.dumps(body.dict(by_alias=True)),
+        "body": json.dumps(body.dict(by_alias=True), cls=DateTimeEncoder),
     }
 
 

@@ -20,6 +20,7 @@ from ..shared.models import (
 from ..shared.utils import (
     generate_user_id,
     get_current_timestamp,
+    get_current_timestamp_str,
     validate_email,
     validate_password,
     validate_username,
@@ -62,6 +63,7 @@ class AuthService:
             # Generate user ID
             user_id = generate_user_id()
             current_time = get_current_timestamp()
+            current_time_str = get_current_timestamp_str()
 
             # Create user in Cognito
             self.cognito.admin_create_user(
@@ -86,17 +88,17 @@ class AuthService:
             )
 
             # Create user record in DynamoDB
-            user = User(
-                userId=user_id,
-                email=request.email,
-                username=request.username,
-                createdAt=current_time,
-                updatedAt=current_time,
-                isActive=True,
-            )
+            user_data = {
+                "userId": user_id,
+                "email": request.email,
+                "username": request.username,
+                "createdAt": current_time_str,
+                "updatedAt": current_time_str,
+                "isActive": True,
+            }
 
             self.users_table.put_item(
-                Item=user.dict(by_alias=True),
+                Item=user_data,
                 ConditionExpression="attribute_not_exists(userId)",
             )
 

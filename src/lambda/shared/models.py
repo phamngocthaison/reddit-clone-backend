@@ -19,14 +19,14 @@ class User(BaseModel):
     class Config:
         """Pydantic configuration."""
 
-        allow_population_by_field_name = True
+        populate_by_name = True
 
 
 class RegisterRequest(BaseModel):
     """User registration request model."""
 
     email: EmailStr
-    username: str = Field(..., min_length=3, max_length=20, regex=r"^[a-zA-Z0-9_]+$")
+    username: str = Field(..., min_length=3, max_length=20, pattern=r"^[a-zA-Z0-9_]+$")
     password: str = Field(..., min_length=8)
 
 
@@ -53,7 +53,7 @@ class ResetPasswordRequest(BaseModel):
     class Config:
         """Pydantic configuration."""
 
-        allow_population_by_field_name = True
+        populate_by_name = True
 
 
 class AuthResponse(BaseModel):
@@ -77,7 +77,10 @@ class UserResponse(BaseModel):
     class Config:
         """Pydantic configuration."""
 
-        allow_population_by_field_name = True
+        populate_by_name = True
+        json_encoders = {
+            datetime: lambda v: v.isoformat() + "Z"
+        }
 
 
 class LoginResponse(BaseModel):
@@ -91,4 +94,4 @@ class LoginResponse(BaseModel):
     class Config:
         """Pydantic configuration."""
 
-        allow_population_by_field_name = True
+        populate_by_name = True

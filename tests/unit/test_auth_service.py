@@ -2,7 +2,11 @@
 
 import pytest
 from unittest.mock import patch, MagicMock
-from src.lambda.auth.auth_service import AuthService
+import sys
+import importlib
+# Use importlib to import from directory named 'lambda' (reserved keyword)
+lambda_module = importlib.import_module('src.lambda.auth.auth_service')
+AuthService = lambda_module.AuthService
 
 
 class TestAuthService:

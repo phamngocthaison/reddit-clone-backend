@@ -1,0 +1,595 @@
+openapi: 3.0.3
+info:
+  title: Reddit Clone Backend API
+  description: |
+    API cho Reddit Clone Backend với các chức năng authentication cơ bản.
+    
+    ## Authentication
+    API sử dụng JWT tokens cho authentication. Tất cả protected endpoints yêu cầu `Authorization` header:
+    ```
+    Authorization: Bearer <access_token>
+    ```
+    
+    ## Base URL
+    - Production: `https://ugn2h0yxwf.execute-api.ap-southeast-1.amazonaws.com/prod`
+    - Local Development: `http://localhost:5000`
+    
+    ## Error Handling
+    Tất cả responses đều follow format chuẩn với `success`, `message`, `data`, và `error` fields.
+  version: 1.0.0
+  contact:
+    name: Reddit Clone Team
+    email: support@redditclone.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://ugn2h0yxwf.execute-api.ap-southeast-1.amazonaws.com/prod
+    description: Production server
+  - url: http://localhost:5000
+    description: Local development server
+
+tags:
+  - name: Authentication
+    description: User authentication and authorization endpoints
+
+paths:
+  /auth/register:
+    post:
+      tags:
+        - Authentication
+      summary: Register a new user
+      description: Tạo tài khoản user mới với email, username và password
+      operationId: registerUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+            examples:
+              valid:
+                summary: Valid registration
+                value:
+                  email: "user@example.com"
+                  username: "username123"
+                  password: "SecurePass123"
+              invalid_email:
+                summary: Invalid email
+                value:
+                  email: "invalid-email"
+                  username: "username123"
+                  password: "SecurePass123"
+              weak_password:
+                summary: Weak password
+                value:
+                  email: "user@example.com"
+                  username: "username123"
+                  password: "weak"
+      responses:
+        '200':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          user:
+                            $ref: '#/components/schemas/UserResponse'
+              examples:
+                success:
+                  summary: Successful registration
+                  value:
+                    success: true
+                    message: "User registered successfully"
+                    data:
+                      user:
+                        userId: "user_1757350912_8004796b44e0429"
+                        email: "user@example.com"
+                        username: "username123"
+                        createdAt: "2025-09-08T17:01:52.011263Z"
+                        isActive: true
+                    error: null
+        '400':
+          description: Bad request - validation errors
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalid_email:
+                  summary: Invalid email format
+                  value:
+                    success: false
+                    message: null
+                    data: null
+                    error:
+                      code: "REGISTRATION_ERROR"
+                      message: "Invalid email format"
+                user_exists:
+                  summary: User already exists
+                  value:
+                    success: false
+                    message: null
+                    data: null
+                    error:
+                      code: "REGISTRATION_ERROR"
+                      message: "User with this email already exists"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    options:
+      tags:
+        - Authentication
+      summary: CORS preflight for registration
+      description: Handle CORS preflight requests
+      responses:
+        '200':
+          description: CORS preflight successful
+          headers:
+            Access-Control-Allow-Origin:
+              schema:
+                type: string
+                example: "*"
+            Access-Control-Allow-Methods:
+              schema:
+                type: string
+                example: "GET, POST, PUT, DELETE, OPTIONS"
+            Access-Control-Allow-Headers:
+              schema:
+                type: string
+                example: "Content-Type, Authorization"
+
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: User login
+      description: Đăng nhập user với email và password
+      operationId: loginUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            examples:
+              valid:
+                summary: Valid login
+                value:
+                  email: "user@example.com"
+                  password: "SecurePass123"
+              invalid:
+                summary: Invalid credentials
+                value:
+                  email: "user@example.com"
+                  password: "WrongPassword"
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/LoginResponse'
+              examples:
+                success:
+                  summary: Successful login
+                  value:
+                    success: true
+                    message: "Login successful"
+                    data:
+                      user:
+                        userId: "user_1757350912_8004796b44e0429"
+                        email: "user@example.com"
+                        username: "username123"
+                        createdAt: "2025-09-08T17:01:52.011263Z"
+                        isActive: true
+                      accessToken: "eyJ0eXAiOiJKV1QiLCJraWQiOiJkdW1teSIsImFsZyI6IlJTMjU2In0..."
+                      refreshToken: "ddc65f38-c806-41c7-840a-98a5a5d7f604"
+                      idToken: "eyJ0eXAiOiJKV1QiLCJraWQiOiJkdW1teSIsImFsZyI6IlJTMjU2In0..."
+                    error: null
+        '400':
+          description: Bad request - invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalid_credentials:
+                  summary: Invalid credentials
+                  value:
+                    success: false
+                    message: null
+                    data: null
+                    error:
+                      code: "LOGIN_ERROR"
+                      message: "Invalid credentials"
+                user_not_found:
+                  summary: User not found
+                  value:
+                    success: false
+                    message: null
+                    data: null
+                    error:
+                      code: "LOGIN_ERROR"
+                      message: "User not found"
+
+  /auth/logout:
+    post:
+      tags:
+        - Authentication
+      summary: User logout
+      description: Đăng xuất user và invalidate token
+      operationId: logoutUser
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              example: {}
+      responses:
+        '200':
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+              examples:
+                success:
+                  summary: Successful logout
+                  value:
+                    success: true
+                    message: "Logout successful"
+                    data: null
+                    error: null
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                unauthorized:
+                  summary: Unauthorized
+                  value:
+                    success: false
+                    message: null
+                    data: null
+                    error:
+                      code: "UNAUTHORIZED"
+                      message: "Invalid or missing authorization token"
+
+  /auth/forgot-password:
+    post:
+      tags:
+        - Authentication
+      summary: Forgot password
+      description: Gửi email reset password
+      operationId: forgotPassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ForgotPasswordRequest'
+            examples:
+              valid:
+                summary: Valid email
+                value:
+                  email: "user@example.com"
+      responses:
+        '200':
+          description: Password reset email sent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+              examples:
+                success:
+                  summary: Email sent
+                  value:
+                    success: true
+                    message: "Password reset code sent to email"
+                    data: null
+                    error: null
+        '400':
+          description: Bad request - user not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                user_not_found:
+                  summary: User not found
+                  value:
+                    success: false
+                    message: null
+                    data: null
+                    error:
+                      code: "FORGOT_PASSWORD_ERROR"
+                      message: "User not found"
+
+  /auth/reset-password:
+    post:
+      tags:
+        - Authentication
+      summary: Reset password
+      description: Reset password với confirmation code
+      operationId: resetPassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetPasswordRequest'
+            examples:
+              valid:
+                summary: Valid reset
+                value:
+                  email: "user@example.com"
+                  confirmationCode: "123456"
+                  newPassword: "NewSecurePass123"
+              invalid_code:
+                summary: Invalid confirmation code
+                value:
+                  email: "user@example.com"
+                  confirmationCode: "invalid"
+                  newPassword: "NewSecurePass123"
+      responses:
+        '200':
+          description: Password reset successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+              examples:
+                success:
+                  summary: Password reset successful
+                  value:
+                    success: true
+                    message: "Password reset successful"
+                    data: null
+                    error: null
+        '400':
+          description: Bad request - invalid code or validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalid_code:
+                  summary: Invalid confirmation code
+                  value:
+                    success: false
+                    message: null
+                    data: null
+                    error:
+                      code: "RESET_PASSWORD_ERROR"
+                      message: "Invalid confirmation code"
+                expired_code:
+                  summary: Expired confirmation code
+                  value:
+                    success: false
+                    message: null
+                    data: null
+                    error:
+                      code: "RESET_PASSWORD_ERROR"
+                      message: "Confirmation code has expired"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token for authentication
+
+  schemas:
+    RegisterRequest:
+      type: object
+      required:
+        - email
+        - username
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          description: User email address
+          example: "user@example.com"
+        username:
+          type: string
+          minLength: 3
+          maxLength: 20
+          pattern: "^[a-zA-Z0-9_]+$"
+          description: Username (3-20 characters, alphanumeric and underscores only)
+          example: "username123"
+        password:
+          type: string
+          minLength: 8
+          description: Password (minimum 8 characters with uppercase, lowercase, and numbers)
+          example: "SecurePass123"
+
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          description: User email address
+          example: "user@example.com"
+        password:
+          type: string
+          description: User password
+          example: "SecurePass123"
+
+    ForgotPasswordRequest:
+      type: object
+      required:
+        - email
+      properties:
+        email:
+          type: string
+          format: email
+          description: User email address
+          example: "user@example.com"
+
+    ResetPasswordRequest:
+      type: object
+      required:
+        - email
+        - confirmationCode
+        - newPassword
+      properties:
+        email:
+          type: string
+          format: email
+          description: User email address
+          example: "user@example.com"
+        confirmationCode:
+          type: string
+          description: Confirmation code from email
+          example: "123456"
+        newPassword:
+          type: string
+          minLength: 8
+          description: New password (minimum 8 characters with uppercase, lowercase, and numbers)
+          example: "NewSecurePass123"
+
+    UserResponse:
+      type: object
+      properties:
+        userId:
+          type: string
+          description: Unique user identifier
+          example: "user_1757350912_8004796b44e0429"
+        email:
+          type: string
+          format: email
+          description: User email address
+          example: "user@example.com"
+        username:
+          type: string
+          description: Username
+          example: "username123"
+        createdAt:
+          type: string
+          format: date-time
+          description: User creation timestamp
+          example: "2025-09-08T17:01:52.011263Z"
+        isActive:
+          type: boolean
+          description: User active status
+          example: true
+
+    LoginResponse:
+      type: object
+      properties:
+        user:
+          $ref: '#/components/schemas/UserResponse'
+        accessToken:
+          type: string
+          description: JWT access token
+          example: "eyJ0eXAiOiJKV1QiLCJraWQiOiJkdW1teSIsImFsZyI6IlJTMjU2In0..."
+        refreshToken:
+          type: string
+          description: Refresh token for getting new access tokens
+          example: "ddc65f38-c806-41c7-840a-98a5a5d7f604"
+        idToken:
+          type: string
+          description: JWT ID token
+          example: "eyJ0eXAiOiJKV1QiLCJraWQiOiJkdW1teSIsImFsZyI6IlJTMjU2In0..."
+
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          description: Indicates if the request was successful
+          example: true
+        message:
+          type: string
+          nullable: true
+          description: Success message
+          example: "Operation successful"
+        data:
+          type: object
+          nullable: true
+          description: Response data
+        error:
+          type: object
+          nullable: true
+          description: Error information (null for success responses)
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          description: Indicates if the request was successful
+          example: false
+        message:
+          type: string
+          nullable: true
+          description: Error message (null for error responses)
+          example: null
+        data:
+          type: object
+          nullable: true
+          description: Response data (null for error responses)
+          example: null
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              description: Error code
+              example: "REGISTRATION_ERROR"
+            message:
+              type: string
+              description: Error message
+              example: "Invalid email format"
+
+  examples:
+    UserExample:
+      summary: Example user
+      value:
+        userId: "user_1757350912_8004796b44e0429"
+        email: "user@example.com"
+        username: "username123"
+        createdAt: "2025-09-08T17:01:52.011263Z"
+        isActive: true
+
+    ErrorExample:
+      summary: Example error
+      value:
+        success: false
+        message: null
+        data: null
+        error:
+          code: "REGISTRATION_ERROR"
+          message: "Invalid email format"
+
+externalDocs:
+  description: Find more info about Reddit Clone Backend
+  url: https://github.com/reddit-clone/backend

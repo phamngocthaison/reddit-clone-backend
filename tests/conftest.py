@@ -2,7 +2,7 @@
 
 import os
 import pytest
-from moto import mock_cognito_idp, mock_dynamodb
+from moto import mock_cognitoidp, mock_dynamodb
 import boto3
 
 
@@ -22,7 +22,7 @@ def setup_environment():
 @pytest.fixture
 def mock_cognito():
     """Mock Cognito service."""
-    with mock_cognito_idp():
+    with mock_cognitoidp():
         yield boto3.client("cognito-idp", region_name="us-east-1")
 
 
