@@ -1,0 +1,1 @@
+{"resource": "/auth/register", "httpMethod": "POST", "body": "{\"email\": \"test@example.com\", \"username\": \"testuser123\", \"password\": \"TestPass123\"}"}

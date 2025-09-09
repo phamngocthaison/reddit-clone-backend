@@ -82,6 +82,9 @@ class RedditCloneStack(cdk.Stack):
                 email=cognito.StandardAttribute(required=True, mutable=True),
                 preferred_username=cognito.StandardAttribute(required=True, mutable=True),
             ),
+            custom_attributes={
+                "userId": cognito.StringAttribute(min_len=1, max_len=256, mutable=True),
+            },
             removal_policy=cdk.RemovalPolicy.DESTROY,  # Use RETAIN for production
         )
 
@@ -89,7 +92,11 @@ class RedditCloneStack(cdk.Stack):
             self,
             "RedditCloneUserPoolClient",
             user_pool=user_pool,
-            auth_flows=cognito.AuthFlow(user_password=True, user_srp=True),
+            auth_flows=cognito.AuthFlow(
+                user_password=True, 
+                user_srp=True, 
+                admin_user_password=True
+            ),
             generate_secret=False,  # Set to True if using server-side authentication
         )
 
@@ -143,6 +150,9 @@ class RedditCloneStack(cdk.Stack):
                     "cognito-idp:ForgotPassword",
                     "cognito-idp:ConfirmForgotPassword",
                     "cognito-idp:GlobalSignOut",
+                    "cognito-idp:AdminListGroupsForUser",
+                    "cognito-idp:AdminAddUserToGroup",
+                    "cognito-idp:AdminRemoveUserFromGroup",
                 ],
                 resources=[self.user_pool.user_pool_arn],
             )
@@ -152,27 +162,15 @@ class RedditCloneStack(cdk.Stack):
 
     def _create_auth_lambda(self, execution_role: iam.Role) -> lambda_.Function:
         """Create Lambda function for authentication."""
-        # Get the path to the Lambda code - use the entire project directory
-        lambda_code_path = Path(__file__).parent.parent
+        # Get the path to the Lambda code - use the deployment directory
+        lambda_code_path = Path(__file__).parent.parent / "lambda-deployment"
 
         auth_lambda = lambda_.Function(
             self,
             "AuthLambda",
             runtime=lambda_.Runtime.PYTHON_3_9,
-            handler="lambda_handler_standalone.handler",  # Use the standalone handler
-            code=lambda_.Code.from_asset(
-                str(lambda_code_path),
-                bundling=lambda_.BundlingOptions(
-                    image=lambda_.Runtime.PYTHON_3_9.bundling_image,
-                    command=[
-                        "bash", "-c",
-                        f"""
-                        pip install -r requirements-lambda.txt -t /asset-output &&
-                        cp lambda_handler_standalone.py /asset-output/
-                        """
-                    ]
-                )
-            ),
+            handler="lambda_handler_standalone_v1.handler",  # Use the standalone v1 handler
+            code=lambda_.Code.from_asset(str(lambda_code_path)),
             role=execution_role,
             environment={
                 "USER_POOL_ID": self.user_pool.user_pool_id,
@@ -208,22 +206,26 @@ class RedditCloneStack(cdk.Stack):
         # API Gateway integration
         auth_integration = apigateway.LambdaIntegration(auth_lambda)
 
-        # Auth endpoints
+        # Auth endpoints - each endpoint needs its own resource path
         auth_resource = api.root.add_resource("auth")
-        auth_resource.add_method("POST", auth_integration)  # Handles all auth operations
-
+        
+        # Register endpoint
         register_resource = auth_resource.add_resource("register")
         register_resource.add_method("POST", auth_integration)
-
+        
+        # Login endpoint
         login_resource = auth_resource.add_resource("login")
         login_resource.add_method("POST", auth_integration)
-
+        
+        # Logout endpoint
         logout_resource = auth_resource.add_resource("logout")
         logout_resource.add_method("POST", auth_integration)
-
+        
+        # Forgot password endpoint
         forgot_password_resource = auth_resource.add_resource("forgot-password")
         forgot_password_resource.add_method("POST", auth_integration)
-
+        
+        # Reset password endpoint
         reset_password_resource = auth_resource.add_resource("reset-password")
         reset_password_resource.add_method("POST", auth_integration)
 
