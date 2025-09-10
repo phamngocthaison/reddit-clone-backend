@@ -7,6 +7,9 @@ import logging
 import os
 import boto3
 import asyncio
+import base64
+import hmac
+import hashlib
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional
 from botocore.exceptions import ClientError
@@ -30,6 +33,9 @@ SUBREDDITS_TABLE = os.environ.get("SUBREDDITS_TABLE")
 users_table = dynamodb.Table(USERS_TABLE) if USERS_TABLE else None
 posts_table = dynamodb.Table(POSTS_TABLE) if POSTS_TABLE else None
 subreddits_table = dynamodb.Table(SUBREDDITS_TABLE) if SUBREDDITS_TABLE else None
+
+# Authentication configuration
+AUTH_MODE = os.environ.get('AUTH_MODE', 'hybrid')  # 'jwt', 'x-user-id', 'hybrid'
 
 # ============================================================================
 # AUTHENTICATION MODELS
@@ -161,6 +167,99 @@ class VoteResponse(BaseModel):
     new_downvotes: int
 
 # ============================================================================
+# JWT VALIDATION FUNCTIONS
+# ============================================================================
+
+def validate_jwt_token(event: Dict[str, Any]) -> Optional[str]:
+    """
+    Validate JWT token and return user_id if valid
+    """
+    try:
+        # Get Authorization header
+        headers = event.get('headers', {})
+        auth_header = headers.get('Authorization') or headers.get('authorization')
+        
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return None
+        
+        token = auth_header[7:]  # Remove 'Bearer '
+        
+        # For now, we'll use a simple validation approach
+        # In production, you should validate the JWT signature with Cognito
+        try:
+            # Decode JWT header and payload (without signature validation for now)
+            parts = token.split('.')
+            if len(parts) != 3:
+                return None
+            
+            # Decode payload
+            payload = parts[1]
+            # Add padding if needed
+            payload += '=' * (4 - len(payload) % 4)
+            decoded_payload = base64.urlsafe_b64decode(payload)
+            payload_data = json.loads(decoded_payload)
+            
+            # Check if token is expired
+            exp = payload_data.get('exp')
+            if exp and datetime.now(timezone.utc).timestamp() > exp:
+                logger.warning("JWT token expired")
+                return None
+            
+            # Extract user_id from token
+            user_id = payload_data.get('sub') or payload_data.get('cognito:username')
+            if not user_id:
+                logger.warning("No user_id found in JWT token")
+                return None
+            
+            logger.info(f"JWT validation successful for user: {user_id}")
+            return user_id
+            
+        except Exception as e:
+            logger.error(f"JWT token validation error: {e}")
+            return None
+            
+    except Exception as e:
+        logger.error(f"JWT validation error: {e}")
+        return None
+
+def get_user_id_from_event(event: Dict[str, Any]) -> Optional[str]:
+    """
+    Get user_id from JWT token or X-User-ID header based on AUTH_MODE
+    """
+    if AUTH_MODE == 'jwt':
+        # JWT only mode
+        return validate_jwt_token(event)
+    
+    elif AUTH_MODE == 'x-user-id':
+        # X-User-ID only mode (for testing)
+        headers = event.get('headers', {})
+        return headers.get('X-User-ID') or headers.get('x-user-id')
+    
+    else:  # hybrid mode
+        # Try JWT first, fallback to X-User-ID
+        user_id = validate_jwt_token(event)
+        if user_id:
+            return user_id
+        
+        # Fallback to X-User-ID for testing
+        headers = event.get('headers', {})
+        return headers.get('X-User-ID') or headers.get('x-user-id')
+
+def require_authentication(event: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """
+    Check if request requires authentication and validate it
+    Returns error response if authentication fails, None if successful
+    """
+    user_id = get_user_id_from_event(event)
+    if not user_id:
+        return create_error_response(
+            401, 
+            "UNAUTHORIZED", 
+            "Authentication required. Please provide valid JWT token or X-User-ID header."
+        )
+    return None
+
+# ============================================================================
 # UTILITY FUNCTIONS
 # ============================================================================
 
@@ -210,22 +309,6 @@ def create_error_response(status_code: int, error_code: str, message: str, addit
         "body": json.dumps(response)
     }
 
-def get_user_id_from_event(event: Dict[str, Any]) -> str:
-    """Extract user ID from API Gateway event."""
-    # For testing purposes, extract from headers
-    headers = event.get('headers', {})
-    user_id = headers.get('X-User-ID') or headers.get('x-user-id')
-    
-    # If not in headers, try to get from query parameters for testing
-    if not user_id:
-        query_params = event.get('queryStringParameters') or {}
-        user_id = query_params.get('user_id')
-    
-    # For testing, use a default user ID if none provided
-    if not user_id:
-        user_id = "user_1757482930_ccac0f7724c2445"  # Default test user
-    
-    return user_id
 
 # ============================================================================
 # AUTHENTICATION HANDLERS
@@ -348,6 +431,11 @@ async def handle_login(event: Dict[str, Any]) -> Dict[str, Any]:
 async def handle_logout(event: Dict[str, Any]) -> Dict[str, Any]:
     """Handle user logout."""
     try:
+        # Check authentication
+        auth_error = require_authentication(event)
+        if auth_error:
+            return auth_error
+        
         # For now, just return success
         # In a real implementation, you would invalidate the token
         return create_success_response(message="Logout successful")
@@ -401,6 +489,11 @@ async def handle_reset_password(event: Dict[str, Any]) -> Dict[str, Any]:
 async def handle_create_post(event: Dict[str, Any]) -> Dict[str, Any]:
     """Handle create post request."""
     try:
+        # Check authentication
+        auth_error = require_authentication(event)
+        if auth_error:
+            return auth_error
+        
         body = json.loads(event.get("body", "{}"))
         request = CreatePostRequest(**body)
         user_id = get_user_id_from_event(event)
