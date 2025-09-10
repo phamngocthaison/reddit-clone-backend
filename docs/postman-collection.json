@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Reddit Clone Backend API",
-    "description": "\n# Reddit Clone Backend API Collection\n\n## Auto Authentication Setup\n\nThis collection includes automatic Bearer token management:\n\n1. **Environment Variables Required:**\n   - `base_url`: API base URL (e.g., https://your-api.amazonaws.com/prod)\n   - `test_email`: Test user email\n   - `test_password`: Test user password\n   - `access_token`: (Auto-populated) JWT access token\n\n2. **Auto-Login:**\n   - Collection automatically logs in if no token exists\n   - Token is saved to environment variable\n   - All requests use Bearer token authentication\n\n3. **Manual Login:**\n   - Run any Login request to get fresh token\n   - Token is automatically saved to environment\n\n## Usage:\n1. Set up environment variables\n2. Run any request - auto-login will happen if needed\n3. All subsequent requests will use the saved token\n\n## Architecture:\n- **AuthLambda**: Handles authentication and posts\n- **CommentsLambda**: Handles comments (separate function)\n",
+    "description": "\n# Reddit Clone Backend API Collection\n\n## Auto Authentication Setup\n\nThis collection includes automatic Bearer token management:\n\n1. **Environment Variables Required:**\n   - `baseUrl`: API base URL (e.g., https://your-api.amazonaws.com/prod)\n   - `test_email`: Test user email\n   - `test_password`: Test user password\n   - `access_token`: (Auto-populated) JWT access token\n   - `userId`: (Auto-populated) User ID from login\n\n2. **Auto-Login:**\n   - Collection automatically logs in if no token exists\n   - Token and user ID are saved to environment variables\n   - All requests use Bearer token authentication\n\n3. **Manual Login:**\n   - Run any Login request to get fresh token\n   - Token is automatically saved to environment\n\n## Usage:\n1. Set up environment variables\n2. Run any request - auto-login will happen if needed\n3. All subsequent requests will use the saved token\n\n## Architecture:\n- **AuthLambda**: Handles authentication and posts\n- **CommentsLambda**: Handles comments (separate function)\n- **SubredditsLambda**: Handles subreddit management\n- **FeedsLambda**: Handles news feed functionality\n",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "version": "2.1.0"
   },
@@ -47,6 +47,16 @@
       "type": "string"
     },
     {
+      "key": "test_email",
+      "value": "test@example.com",
+      "type": "string"
+    },
+    {
+      "key": "test_password",
+      "value": "TestPass123",
+      "type": "string"
+    },
+    {
       "key": "postId",
       "value": "",
       "type": "string"
@@ -85,7 +95,7 @@
           "    ",
           "    // Auto-login request",
           "    pm.sendRequest({",
-          "        url: pm.environment.get('base_url') + '/auth/login',",
+          "        url: pm.environment.get('baseUrl') + '/auth/login',",
           "        method: 'POST',",
           "        header: {",
           "            'Content-Type': 'application/json'",
@@ -100,6 +110,7 @@
           "    }, function (err, response) {",
           "        if (response && response.json() && response.json().data && response.json().data.access_token) {",
           "            pm.environment.set('access_token', response.json().data.access_token);",
+          "            pm.environment.set('userId', response.json().data.user_id);",
           "            console.log('Auto-login successful, token saved');",
           "        } else {",
           "            console.log('Auto-login failed:', response ? response.json() : err);",
