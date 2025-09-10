@@ -862,17 +862,18 @@ X-User-ID: user_1234567890_abcdef12  # For testing purposes
 
 ### 2. Get Comments
 
-**GET** `/comments?post_id={post_id}&parent_id={parent_id}&sort={sort}&limit={limit}&offset={offset}&include_deleted={include_deleted}`
+**GET** `/comments?post_id={post_id}&parent_comment_id={parent_comment_id}&sort_by={sort_by}&sort_order={sort_order}&limit={limit}&offset={offset}`
 
-Lấy danh sách comments của một post.
+Lấy danh sách comments. Có thể filter theo post_id hoặc lấy tất cả comments.
 
 #### Query Parameters
-- **post_id** (required): ID của post
-- **parent_id** (optional): ID của parent comment (để lấy replies)
-- **sort** (optional): Sắp xếp ("hot", "new", "top", "controversial", "old") (default: "hot")
+- **post_id** (optional): ID của post để filter comments
+- **parent_comment_id** (optional): ID của parent comment (để lấy replies)
+- **author_id** (optional): ID của author để filter comments
+- **sort_by** (optional): Sắp xếp theo ("created_at", "score") (default: "created_at")
+- **sort_order** (optional): Thứ tự sắp xếp ("asc", "desc") (default: "desc")
 - **limit** (optional): Số lượng comments (1-100, default: 20)
 - **offset** (optional): Số comments bỏ qua (default: 0)
-- **include_deleted** (optional): Bao gồm deleted comments (default: false)
 
 #### Success Response (200)
 ```json
@@ -882,41 +883,95 @@ Lấy danh sách comments của một post.
   "data": {
     "comments": [
       {
-        "comment_id": "comment_1757473451_1f984949",
-        "post_id": "post_1757473451_1f984949",
-        "author_id": "user_1757432106_d66ab80f40704b1",
-        "parent_id": null,
-        "content": "This is a great post! Thanks for sharing.",
+        "comment_id": "comment_1757509982_351caa27",
+        "content": "Updated comment content",
+        "author_id": "f9ba158c-b051-703e-da3e-5d3ed8522bb5",
+        "author_username": "Unknown",
+        "post_id": "post_1757508287_f8e2cbd7",
+        "parent_comment_id": null,
         "comment_type": "comment",
-        "score": 15,
-        "upvotes": 18,
-        "downvotes": 3,
-        "reply_count": 2,
-        "created_at": "2024-01-15T10:30:00Z",
-        "updated_at": "2024-01-15T10:30:00Z",
+        "media_urls": [],
+        "score": 0,
+        "upvotes": 0,
+        "downvotes": 0,
+        "reply_count": 0,
+        "created_at": "2025-09-10T13:13:02.967836+00:00",
+        "updated_at": "2025-09-10T13:57:24.760528+00:00",
         "is_deleted": false,
-        "is_edited": false,
-        "is_locked": false,
-        "is_sticky": false,
+        "is_edited": true,
         "is_nsfw": false,
-        "is_spoiler": false,
-        "flair": "Discussion",
-        "tags": ["feedback", "positive"],
-        "awards": [],
-        "user_vote": "upvote",
-        "replies": []
+        "is_spoiler": true,
+        "flair": "Updated Flair",
+        "tags": ["updated", "feedback"],
+        "awards": []
       }
     ],
-    "total_count": 25,
-    "has_more": true,
-    "next_offset": 20
+    "total_count": 5,
+    "has_more": false,
+    "next_offset": null
   }
 }
 ```
 
 ---
 
-### 3. Get Comment by ID
+### 3. Get Comments by Post ID
+
+**GET** `/posts/{post_id}/comments?parent_comment_id={parent_comment_id}&sort_by={sort_by}&sort_order={sort_order}&limit={limit}&offset={offset}`
+
+Lấy danh sách comments của một post cụ thể.
+
+#### Path Parameters
+- **post_id** (required): ID của post
+
+#### Query Parameters
+- **parent_comment_id** (optional): ID của parent comment (để lấy replies)
+- **author_id** (optional): ID của author để filter comments
+- **sort_by** (optional): Sắp xếp theo ("created_at", "score") (default: "created_at")
+- **sort_order** (optional): Thứ tự sắp xếp ("asc", "desc") (default: "desc")
+- **limit** (optional): Số lượng comments (1-100, default: 20)
+- **offset** (optional): Số comments bỏ qua (default: 0)
+
+#### Success Response (200)
+```json
+{
+  "success": true,
+  "message": "Comments retrieved successfully",
+  "data": {
+    "comments": [
+      {
+        "comment_id": "comment_1757509982_351caa27",
+        "content": "Updated comment content",
+        "author_id": "f9ba158c-b051-703e-da3e-5d3ed8522bb5",
+        "author_username": "Unknown",
+        "post_id": "post_1757508287_f8e2cbd7",
+        "parent_comment_id": null,
+        "comment_type": "comment",
+        "media_urls": [],
+        "score": 0,
+        "upvotes": 0,
+        "downvotes": 0,
+        "reply_count": 0,
+        "created_at": "2025-09-10T13:13:02.967836+00:00",
+        "updated_at": "2025-09-10T13:57:24.760528+00:00",
+        "is_deleted": false,
+        "is_edited": true,
+        "is_nsfw": false,
+        "is_spoiler": true,
+        "flair": "Updated Flair",
+        "tags": ["updated", "feedback"],
+        "awards": []
+      }
+    ],
+    "count": 5,
+    "post_id": "post_1757508287_f8e2cbd7"
+  }
+}
+```
+
+---
+
+### 4. Get Comment by ID
 
 **GET** `/comments/{comment_id}`
 
@@ -1242,6 +1297,14 @@ curl -X POST https://ugn2h0yxwf.execute-api.ap-southeast-1.amazonaws.com/prod/au
 ---
 
 ## Changelog
+
+### v2.3.0 (2025-09-10)
+- **Fixed Comment API**: Resolved issues with GET comments endpoints
+- **GSI Optimization**: Implemented proper GSI usage instead of scan operations for better performance
+- **Enhanced Filtering**: Improved filter expressions to handle missing fields (isDeleted, parentCommentId)
+- **New Endpoint**: Added dedicated `/posts/{post_id}/comments` endpoint for better API organization
+- **Better Error Handling**: Fixed null value handling in DynamoDB queries
+- **Performance Improvement**: Comments retrieval now uses PostIndex GSI for faster queries
 
 ### v2.2.0 (2025-09-10)
 - **Flexible Login**: Support both email and username for login

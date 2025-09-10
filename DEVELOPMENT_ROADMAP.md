@@ -23,6 +23,14 @@ This document outlines the complete development roadmap for building a Reddit-li
 - DynamoDB posts table with GSIs
 - API Gateway posts endpoints
 
+**Phase 3: Comments System** ✅ **COMPLETED**
+- Comments CRUD operations
+- Nested replies system
+- Comment threading and sorting
+- GSI optimization for better performance
+- Fixed filter expressions for missing fields
+- Enhanced API endpoints for better organization
+
 **Next Phase: Search & Discovery** 🚧 **IN PROGRESS**
 
 ---
@@ -154,14 +162,20 @@ subscriptions_table = {
 
 #### API Endpoints
 ```http
-POST   /posts/{post_id}/comments        # Tạo comment
-GET    /posts/{post_id}/comments        # Lấy comments của post
-POST   /comments/{comment_id}/reply     # Reply comment
+POST   /comments/create                 # Tạo comment mới
+GET    /comments                        # Lấy tất cả comments (với filters)
+GET    /posts/{post_id}/comments        # Lấy comments của post cụ thể
+GET    /comments/{comment_id}           # Lấy chi tiết comment
 PUT    /comments/{comment_id}           # Sửa comment
 DELETE /comments/{comment_id}           # Xóa comment
-GET    /comments/{comment_id}/replies   # Lấy replies của comment
-GET    /users/{user_id}/comments        # Lấy comments của user
+POST   /comments/{comment_id}/vote      # Vote comment
 ```
+
+#### Key Improvements (v2.3.0)
+- **GSI Optimization**: Sử dụng PostIndex GSI thay vì scan operations
+- **Enhanced Filtering**: Xử lý đúng các trường hợp field không tồn tại
+- **Better Performance**: Query nhanh hơn với GSI
+- **Improved Error Handling**: Xử lý null values trong DynamoDB
 
 #### Database Schema
 ```python
@@ -595,13 +609,17 @@ lambda_functions = [
 
 ## 📅 Implementation Timeline
 
-### **Phase 2: Posts System (4 weeks)**
+### **Phase 2: Posts System (4 weeks)** ✅ **COMPLETED**
 - **Week 1**: Posts CRUD operations
 - **Week 2**: Subreddit system
 - **Week 3**: Comment system
 - **Week 4**: Voting system
 
-### **Phase 3: Search & Discovery (4 weeks)**
+### **Phase 3: Comments System (2 weeks)** ✅ **COMPLETED**
+- **Week 1**: Basic comment CRUD operations
+- **Week 2**: GSI optimization and performance improvements
+
+### **Phase 4: Search & Discovery (4 weeks)**
 - **Week 1**: Basic search functionality
 - **Week 2**: Elasticsearch integration
 - **Week 3**: Advanced search features
@@ -647,16 +665,16 @@ lambda_functions = [
 
 ## 🚀 Next Steps
 
-1. **Immediate**: Start Phase 2 - Posts System
-2. **Week 1**: Implement basic posts CRUD operations
-3. **Week 2**: Add subreddit functionality
-4. **Week 3**: Build comment system
-5. **Week 4**: Implement voting system
+1. **Immediate**: Start Phase 4 - Search & Discovery
+2. **Week 1**: Implement basic search functionality with DynamoDB GSI
+3. **Week 2**: Integrate Elasticsearch for advanced search
+4. **Week 3**: Add recommendation system
+5. **Week 4**: Implement search analytics and optimization
 
-**Ready to begin Phase 2 implementation!** 🎉
+**Ready to begin Phase 4 implementation!** 🎉
 
 ---
 
-*Last Updated: 2025-01-09*  
-*Version: 1.0*  
-*Status: Planning Complete - Ready for Implementation*
+*Last Updated: 2025-09-10*  
+*Version: 2.3*  
+*Status: Phase 3 Complete - Ready for Phase 4 Implementation*
