@@ -39,7 +39,13 @@ Authorization: Bearer <access_token>
 - Test cases cho tất cả scenarios
 - Environment variables setup
 
-### 4. [OpenAPI Specification](./openapi-spec.yaml)
+### 4. [Subreddit APIs Collection](./Reddit_Clone_Subreddit_APIs.postman_collection.json)
+- Collection riêng cho Subreddit APIs
+- Test cases cho tất cả subreddit operations
+- Join/Leave subreddit functionality
+- Moderator management
+
+### 5. [OpenAPI Specification](./openapi-spec.yaml)
 - Swagger/OpenAPI 3.0 spec
 - Interactive API documentation
 - Import vào Postman, Insomnia, etc.
@@ -208,6 +214,16 @@ curl https://ugn2h0yxwf.execute-api.ap-southeast-1.amazonaws.com/prod/health
 - Discord: Reddit Clone Community
 
 ## 📝 Changelog
+
+### v1.1.0 (2025-09-10)
+- ✅ Subreddit System implementation
+- ✅ Create, read, update, delete subreddits
+- ✅ Join/leave subreddit functionality
+- ✅ Moderator management
+- ✅ Subreddit search and filtering
+- ✅ Subreddit posts listing
+- ✅ Separate SubredditsLambda for better performance
+- ✅ Subreddit-specific Postman collection
 
 ### v1.0.0 (2025-09-08)
 - ✅ Initial API release

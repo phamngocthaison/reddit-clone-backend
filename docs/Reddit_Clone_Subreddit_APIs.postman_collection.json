@@ -1,0 +1,348 @@
+{
+	"info": {
+		"_postman_id": "subreddit-apis-collection",
+		"name": "Reddit Clone - Subreddit APIs",
+		"description": "Collection of Subreddit APIs for Reddit Clone Backend",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "1. Create Subreddit",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "X-User-ID",
+						"value": "{{user_id}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"name\": \"programming\",\n  \"display_name\": \"Programming\",\n  \"description\": \"Discussion about programming languages and frameworks\",\n  \"rules\": [\"Be respectful\", \"No spam\", \"Use descriptive titles\"],\n  \"primary_color\": \"#FF4500\",\n  \"secondary_color\": \"#FFFFFF\",\n  \"language\": \"en\",\n  \"country\": \"US\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/subreddits/create",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"subreddits",
+						"create"
+					]
+				}
+			}
+		},
+		{
+			"name": "2. Get Subreddits",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/subreddits?sort=new&limit=20&offset=0",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"subreddits"
+					],
+					"query": [
+						{
+							"key": "sort",
+							"value": "new",
+							"description": "new | popular | trending"
+						},
+						{
+							"key": "limit",
+							"value": "20"
+						},
+						{
+							"key": "offset",
+							"value": "0"
+						},
+						{
+							"key": "search",
+							"value": "",
+							"description": "Search by name or description",
+							"disabled": true
+						}
+					]
+				}
+			}
+		},
+		{
+			"name": "3. Get Subreddit by ID",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "X-User-ID",
+						"value": "{{user_id}}",
+						"disabled": true
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/subreddits/{{subreddit_id}}",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"subreddits",
+						"{{subreddit_id}}"
+					]
+				}
+			}
+		},
+		{
+			"name": "4. Get Subreddit by Name",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "X-User-ID",
+						"value": "{{user_id}}",
+						"disabled": true
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/subreddits/name/{{subreddit_name}}",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"subreddits",
+						"name",
+						"{{subreddit_name}}"
+					]
+				}
+			}
+		},
+		{
+			"name": "5. Update Subreddit",
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "X-User-ID",
+						"value": "{{user_id}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"display_name\": \"Programming Community\",\n  \"description\": \"A community for programmers to discuss coding, frameworks, and best practices\",\n  \"rules\": [\"Be respectful and civil\", \"No spam or self-promotion\", \"Use descriptive titles\", \"Follow Reddit guidelines\"],\n  \"primary_color\": \"#FF6B35\",\n  \"secondary_color\": \"#F7F7F7\",\n  \"is_private\": false,\n  \"is_nsfw\": false,\n  \"is_restricted\": false\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/subreddits/{{subreddit_id}}",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"subreddits",
+						"{{subreddit_id}}"
+					]
+				}
+			}
+		},
+		{
+			"name": "6. Join Subreddit",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "X-User-ID",
+						"value": "{{user_id}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{}"
+				},
+				"url": {
+					"raw": "{{base_url}}/subreddits/{{subreddit_id}}/join",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"subreddits",
+						"{{subreddit_id}}",
+						"join"
+					]
+				}
+			}
+		},
+		{
+			"name": "7. Leave Subreddit",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "X-User-ID",
+						"value": "{{user_id}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{}"
+				},
+				"url": {
+					"raw": "{{base_url}}/subreddits/{{subreddit_id}}/leave",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"subreddits",
+						"{{subreddit_id}}",
+						"leave"
+					]
+				}
+			}
+		},
+		{
+			"name": "8. Get Subreddit Posts",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/subreddits/{{subreddit_id}}/posts?limit=20&offset=0&sort=new",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"subreddits",
+						"{{subreddit_id}}",
+						"posts"
+					],
+					"query": [
+						{
+							"key": "limit",
+							"value": "20"
+						},
+						{
+							"key": "offset",
+							"value": "0"
+						},
+						{
+							"key": "sort",
+							"value": "new",
+							"description": "new | hot | top"
+						}
+					]
+				}
+			}
+		},
+		{
+			"name": "9. Add Moderator",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "X-User-ID",
+						"value": "{{user_id}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"user_id\": \"{{moderator_user_id}}\",\n  \"action\": \"add\",\n  \"role\": \"moderator\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/subreddits/{{subreddit_id}}/moderators",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"subreddits",
+						"{{subreddit_id}}",
+						"moderators"
+					]
+				}
+			}
+		},
+		{
+			"name": "10. Remove Moderator",
+			"request": {
+				"method": "DELETE",
+				"header": [
+					{
+						"key": "X-User-ID",
+						"value": "{{user_id}}"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/subreddits/{{subreddit_id}}/moderators/{{moderator_user_id}}",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"subreddits",
+						"{{subreddit_id}}",
+						"moderators",
+						"{{moderator_user_id}}"
+					]
+				}
+			}
+		},
+		{
+			"name": "11. Delete Subreddit",
+			"request": {
+				"method": "DELETE",
+				"header": [
+					{
+						"key": "X-User-ID",
+						"value": "{{user_id}}"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/subreddits/{{subreddit_id}}",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"subreddits",
+						"{{subreddit_id}}"
+					]
+				}
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "https://ugn2h0yxwf.execute-api.ap-southeast-1.amazonaws.com/prod"
+		},
+		{
+			"key": "user_id",
+			"value": "f9ba158c-b051-703e-da3e-5d3ed8522bb5"
+		},
+		{
+			"key": "subreddit_id",
+			"value": "subreddit_1757518063_01b8625d"
+		},
+		{
+			"key": "subreddit_name",
+			"value": "programming"
+		},
+		{
+			"key": "moderator_user_id",
+			"value": "user_1757485758_cde044d0"
+		}
+	]
+}

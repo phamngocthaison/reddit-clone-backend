@@ -7,9 +7,10 @@ Local Development: http://localhost:5000
 ```
 
 ## Architecture Overview
-API được chia thành 2 Lambda functions riêng biệt:
+API được chia thành 3 Lambda functions riêng biệt:
 - **AuthLambda**: Xử lý Authentication và Posts APIs
 - **CommentsLambda**: Xử lý Comments APIs
+- **SubredditsLambda**: Xử lý Subreddit APIs
 
 ## Authentication
 API sử dụng JWT tokens cho authentication. Tất cả protected endpoints yêu cầu `Authorization` header:
@@ -1338,3 +1339,411 @@ curl -X POST https://ugn2h0yxwf.execute-api.ap-southeast-1.amazonaws.com/prod/au
 - Password reset functionality
 - JWT token authentication
 - CORS support
+
+---
+
+## Subreddit APIs
+
+### 1. Create Subreddit
+**POST** `/subreddits/create`
+
+Tạo subreddit mới.
+
+**Headers:**
+```
+Content-Type: application/json
+X-User-ID: <user_id>
+```
+
+**Request Body:**
+```json
+{
+  "name": "programming",
+  "display_name": "Programming",
+  "description": "Discussion about programming languages and frameworks",
+  "rules": ["Be respectful", "No spam", "Use descriptive titles"],
+  "primary_color": "#FF4500",
+  "secondary_color": "#FFFFFF",
+  "language": "en",
+  "country": "US"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Subreddit created successfully",
+  "data": {
+    "subreddit_id": "subreddit_1757518063_01b8625d",
+    "name": "programming",
+    "display_name": "Programming",
+    "description": "Discussion about programming languages and frameworks",
+    "rules": ["Be respectful", "No spam", "Use descriptive titles"],
+    "owner_id": "f9ba158c-b051-703e-da3e-5d3ed8522bb5",
+    "moderators": ["f9ba158c-b051-703e-da3e-5d3ed8522bb5"],
+    "subscriber_count": 1,
+    "post_count": 0,
+    "created_at": "2025-09-10T15:27:43.750119+00:00",
+    "updated_at": "2025-09-10T15:27:43.750119+00:00",
+    "is_private": false,
+    "is_nsfw": false,
+    "is_restricted": false,
+    "banner_image": null,
+    "icon_image": null,
+    "primary_color": "#FF4500",
+    "secondary_color": "#FFFFFF",
+    "language": "en",
+    "country": "US",
+    "is_subscribed": null,
+    "user_role": null
+  }
+}
+```
+
+### 2. Get Subreddits
+**GET** `/subreddits`
+
+Lấy danh sách subreddits.
+
+**Query Parameters:**
+- `sort` (optional): `new` | `popular` | `trending` (default: `new`)
+- `search` (optional): Tìm kiếm theo tên hoặc mô tả
+- `limit` (optional): Số lượng kết quả (default: 20)
+- `offset` (optional): Vị trí bắt đầu (default: 0)
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Subreddits retrieved successfully",
+  "data": {
+    "subreddits": [
+      {
+        "subreddit_id": "subreddit_1757518063_01b8625d",
+        "name": "programming",
+        "display_name": "Programming",
+        "description": "Discussion about programming languages and frameworks",
+        "rules": ["Be respectful", "No spam", "Use descriptive titles"],
+        "owner_id": "f9ba158c-b051-703e-da3e-5d3ed8522bb5",
+        "moderators": ["f9ba158c-b051-703e-da3e-5d3ed8522bb5"],
+        "subscriber_count": 2,
+        "post_count": 0,
+        "created_at": "2025-09-10T15:27:43.750119+00:00",
+        "updated_at": "2025-09-10T15:27:43.750119+00:00",
+        "is_private": false,
+        "is_nsfw": false,
+        "is_restricted": false,
+        "banner_image": null,
+        "icon_image": null,
+        "primary_color": "#FF4500",
+        "secondary_color": "#FFFFFF",
+        "language": "en",
+        "country": "US",
+        "is_subscribed": true,
+        "user_role": "subscriber"
+      }
+    ],
+    "total_count": 1,
+    "has_more": false,
+    "next_offset": null
+  }
+}
+```
+
+### 3. Get Subreddit by ID
+**GET** `/subreddits/{subreddit_id}`
+
+Lấy thông tin chi tiết của subreddit.
+
+**Headers:**
+```
+X-User-ID: <user_id> (optional)
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Subreddit retrieved successfully",
+  "data": {
+    "subreddit_id": "subreddit_1757518063_01b8625d",
+    "name": "programming",
+    "display_name": "Programming",
+    "description": "Discussion about programming languages and frameworks",
+    "rules": ["Be respectful", "No spam", "Use descriptive titles"],
+    "owner_id": "f9ba158c-b051-703e-da3e-5d3ed8522bb5",
+    "moderators": ["f9ba158c-b051-703e-da3e-5d3ed8522bb5"],
+    "subscriber_count": 2,
+    "post_count": 0,
+    "created_at": "2025-09-10T15:27:43.750119+00:00",
+    "updated_at": "2025-09-10T15:27:43.750119+00:00",
+    "is_private": false,
+    "is_nsfw": false,
+    "is_restricted": false,
+    "banner_image": null,
+    "icon_image": null,
+    "primary_color": "#FF4500",
+    "secondary_color": "#FFFFFF",
+    "language": "en",
+    "country": "US",
+    "is_subscribed": true,
+    "user_role": "subscriber"
+  }
+}
+```
+
+### 4. Get Subreddit by Name
+**GET** `/subreddits/name/{name}`
+
+Lấy thông tin subreddit theo tên.
+
+**Headers:**
+```
+X-User-ID: <user_id> (optional)
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Subreddit retrieved successfully",
+  "data": {
+    "subreddit_id": "subreddit_1757518063_01b8625d",
+    "name": "programming",
+    "display_name": "Programming",
+    "description": "Discussion about programming languages and frameworks",
+    "rules": ["Be respectful", "No spam", "Use descriptive titles"],
+    "owner_id": "f9ba158c-b051-703e-da3e-5d3ed8522bb5",
+    "moderators": ["f9ba158c-b051-703e-da3e-5d3ed8522bb5"],
+    "subscriber_count": 2,
+    "post_count": 0,
+    "created_at": "2025-09-10T15:27:43.750119+00:00",
+    "updated_at": "2025-09-10T15:27:43.750119+00:00",
+    "is_private": false,
+    "is_nsfw": false,
+    "is_restricted": false,
+    "banner_image": null,
+    "icon_image": null,
+    "primary_color": "#FF4500",
+    "secondary_color": "#FFFFFF",
+    "language": "en",
+    "country": "US",
+    "is_subscribed": true,
+    "user_role": "subscriber"
+  }
+}
+```
+
+### 5. Update Subreddit
+**PUT** `/subreddits/{subreddit_id}`
+
+Cập nhật thông tin subreddit (chỉ owner và moderators).
+
+**Headers:**
+```
+Content-Type: application/json
+X-User-ID: <user_id>
+```
+
+**Request Body:**
+```json
+{
+  "display_name": "Programming Community",
+  "description": "A community for programmers to discuss coding, frameworks, and best practices",
+  "rules": ["Be respectful and civil", "No spam or self-promotion", "Use descriptive titles", "Follow Reddit guidelines"],
+  "primary_color": "#FF6B35",
+  "secondary_color": "#F7F7F7",
+  "is_private": false,
+  "is_nsfw": false,
+  "is_restricted": false
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Subreddit updated successfully",
+  "data": {
+    "subreddit_id": "subreddit_1757518063_01b8625d",
+    "name": "programming",
+    "display_name": "Programming Community",
+    "description": "A community for programmers to discuss coding, frameworks, and best practices",
+    "rules": ["Be respectful and civil", "No spam or self-promotion", "Use descriptive titles", "Follow Reddit guidelines"],
+    "owner_id": "f9ba158c-b051-703e-da3e-5d3ed8522bb5",
+    "moderators": ["f9ba158c-b051-703e-da3e-5d3ed8522bb5"],
+    "subscriber_count": 2,
+    "post_count": 0,
+    "created_at": "2025-09-10T15:27:43.750119+00:00",
+    "updated_at": "2025-09-10T15:33:37.435788+00:00",
+    "is_private": false,
+    "is_nsfw": false,
+    "is_restricted": false,
+    "banner_image": null,
+    "icon_image": null,
+    "primary_color": "#FF6B35",
+    "secondary_color": "#F7F7F7",
+    "language": "en",
+    "country": "US",
+    "is_subscribed": true,
+    "user_role": "subscriber"
+  }
+}
+```
+
+### 6. Join Subreddit
+**POST** `/subreddits/{subreddit_id}/join`
+
+Tham gia subreddit.
+
+**Headers:**
+```
+Content-Type: application/json
+X-User-ID: <user_id>
+```
+
+**Request Body:**
+```json
+{}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Successfully joined subreddit",
+  "data": {
+    "subscription_id": "sub_1757518530_a664d7ee",
+    "user_id": "user_1757485758_cde044d0",
+    "subreddit_id": "subreddit_1757518523_88a4c527",
+    "role": "subscriber",
+    "joined_at": "2025-09-10T15:35:30.9",
+    "is_active": true
+  }
+}
+```
+
+### 7. Leave Subreddit
+**POST** `/subreddits/{subreddit_id}/leave`
+
+Rời khỏi subreddit (không áp dụng cho owner).
+
+**Headers:**
+```
+Content-Type: application/json
+X-User-ID: <user_id>
+```
+
+**Request Body:**
+```json
+{}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Successfully left subreddit"
+}
+```
+
+### 8. Get Subreddit Posts
+**GET** `/subreddits/{subreddit_id}/posts`
+
+Lấy danh sách posts trong subreddit.
+
+**Query Parameters:**
+- `limit` (optional): Số lượng posts (default: 20)
+- `offset` (optional): Vị trí bắt đầu (default: 0)
+- `sort` (optional): `new` | `hot` | `top` (default: `new`)
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Subreddit posts retrieved successfully",
+  "data": {
+    "posts": [],
+    "count": 0,
+    "subreddit_id": "subreddit_1757518063_01b8625d",
+    "has_more": false,
+    "next_offset": null
+  }
+}
+```
+
+### 9. Add Moderator
+**POST** `/subreddits/{subreddit_id}/moderators`
+
+Thêm moderator cho subreddit (chỉ owner).
+
+**Headers:**
+```
+Content-Type: application/json
+X-User-ID: <user_id>
+```
+
+**Request Body:**
+```json
+{
+  "user_id": "user_1757485758_cde044d0",
+  "action": "add",
+  "role": "moderator"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Moderator added successfully"
+}
+```
+
+### 10. Remove Moderator
+**DELETE** `/subreddits/{subreddit_id}/moderators/{user_id}`
+
+Xóa moderator khỏi subreddit (chỉ owner).
+
+**Headers:**
+```
+X-User-ID: <user_id>
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Moderator removed successfully"
+}
+```
+
+### 11. Delete Subreddit
+**DELETE** `/subreddits/{subreddit_id}`
+
+Xóa subreddit (chỉ owner).
+
+**Headers:**
+```
+X-User-ID: <user_id>
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Subreddit deleted successfully"
+}
+```
+
+## Error Codes
+
+### Subreddit-specific Error Codes
+- `SUBREDDIT_NOT_FOUND`: Subreddit không tồn tại
+- `SUBREDDIT_NAME_EXISTS`: Tên subreddit đã được sử dụng
+- `INSUFFICIENT_PERMISSIONS`: Không có quyền thực hiện hành động
+- `ALREADY_SUBSCRIBED`: User đã tham gia subreddit
+- `NOT_SUBSCRIBED`: User chưa tham gia subreddit
+- `OWNER_CANNOT_LEAVE`: Owner không thể rời khỏi subreddit của mình
+- `CANNOT_JOIN_PRIVATE`: Không thể tham gia subreddit private mà không có lời mời

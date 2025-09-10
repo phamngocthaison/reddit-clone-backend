@@ -25,6 +25,7 @@ class RedditCloneStack(cdk.Stack):
         self.posts_table = self._create_posts_table()
         self.subreddits_table = self._create_subreddits_table()
         self.comments_table = self._create_comments_table()
+        self.subscriptions_table = self._create_subscriptions_table()
 
         # Cognito User Pool
         self.user_pool, self.user_pool_client = self._create_cognito_resources()
@@ -35,9 +36,10 @@ class RedditCloneStack(cdk.Stack):
         # Lambda functions
         auth_lambda = self._create_auth_lambda(lambda_execution_role)
         comments_lambda = self._create_comments_lambda(lambda_execution_role)
+        subreddits_lambda = self._create_subreddits_lambda(lambda_execution_role)
 
         # API Gateway
-        self.api = self._create_api_gateway(auth_lambda, comments_lambda)
+        self.api = self._create_api_gateway(auth_lambda, comments_lambda, subreddits_lambda)
 
         # Outputs
         self._create_outputs()
@@ -221,6 +223,44 @@ class RedditCloneStack(cdk.Stack):
 
         return table
 
+    def _create_subscriptions_table(self) -> dynamodb.Table:
+        """Create DynamoDB table for subscriptions."""
+        table = dynamodb.Table(
+            self,
+            "SubscriptionsTable",
+            table_name="reddit-clone-subscriptions",
+            partition_key=dynamodb.Attribute(
+                name="subscriptionId", type=dynamodb.AttributeType.STRING
+            ),
+            billing_mode=dynamodb.BillingMode.PAY_PER_REQUEST,
+            removal_policy=cdk.RemovalPolicy.DESTROY,  # Use RETAIN for production
+            point_in_time_recovery=True,
+        )
+
+        # GSI for subscriptions by user
+        table.add_global_secondary_index(
+            index_name="UserIndex",
+            partition_key=dynamodb.Attribute(
+                name="userId", type=dynamodb.AttributeType.STRING
+            ),
+            sort_key=dynamodb.Attribute(
+                name="joinedAt", type=dynamodb.AttributeType.STRING
+            ),
+        )
+
+        # GSI for subscriptions by subreddit
+        table.add_global_secondary_index(
+            index_name="SubredditIndex",
+            partition_key=dynamodb.Attribute(
+                name="subredditId", type=dynamodb.AttributeType.STRING
+            ),
+            sort_key=dynamodb.Attribute(
+                name="joinedAt", type=dynamodb.AttributeType.STRING
+            ),
+        )
+
+        return table
+
     def _create_cognito_resources(self) -> tuple[cognito.UserPool, cognito.UserPoolClient]:
         """Create Cognito User Pool and Client."""
         user_pool = cognito.UserPool(
@@ -285,6 +325,8 @@ class RedditCloneStack(cdk.Stack):
                     "dynamodb:DeleteItem",
                     "dynamodb:Query",
                     "dynamodb:Scan",
+                    "dynamodb:BatchWriteItem",
+                    "dynamodb:BatchGetItem",
                 ],
                 resources=[
                     self.users_table.table_arn,
@@ -295,6 +337,8 @@ class RedditCloneStack(cdk.Stack):
                     f"{self.subreddits_table.table_arn}/index/*",
                     self.comments_table.table_arn,
                     f"{self.comments_table.table_arn}/index/*",
+                    self.subscriptions_table.table_arn,
+                    f"{self.subscriptions_table.table_arn}/index/*",
                 ],
             )
         )
@@ -344,6 +388,7 @@ class RedditCloneStack(cdk.Stack):
                 "POSTS_TABLE": self.posts_table.table_name,
                 "SUBREDDITS_TABLE": self.subreddits_table.table_name,
                 "COMMENTS_TABLE": self.comments_table.table_name,
+                "SUBSCRIPTIONS_TABLE": self.subscriptions_table.table_name,
                 "REGION": self.region,
             },
             timeout=cdk.Duration.seconds(30),
@@ -370,6 +415,7 @@ class RedditCloneStack(cdk.Stack):
                 "POSTS_TABLE": self.posts_table.table_name,
                 "SUBREDDITS_TABLE": self.subreddits_table.table_name,
                 "COMMENTS_TABLE": self.comments_table.table_name,
+                "SUBSCRIPTIONS_TABLE": self.subscriptions_table.table_name,
                 "REGION": self.region,
             },
             timeout=cdk.Duration.seconds(30),
@@ -377,7 +423,34 @@ class RedditCloneStack(cdk.Stack):
 
         return comments_lambda
 
-    def _create_api_gateway(self, auth_lambda: lambda_.Function, comments_lambda: lambda_.Function) -> apigateway.RestApi:
+    def _create_subreddits_lambda(self, execution_role: iam.Role) -> lambda_.Function:
+        """Create Lambda function for subreddits."""
+        # Get the path to the Lambda code - use the deployment directory
+        lambda_code_path = Path(__file__).parent.parent / "lambda-deployment"
+
+        subreddits_lambda = lambda_.Function(
+            self,
+            "SubredditsLambda",
+            runtime=lambda_.Runtime.PYTHON_3_9,
+            handler="lambda_handler_subreddits.handler",  # Use the subreddits handler
+            code=lambda_.Code.from_asset(str(lambda_code_path)),
+            role=execution_role,
+            environment={
+                "USER_POOL_ID": self.user_pool.user_pool_id,
+                "CLIENT_ID": self.user_pool_client.user_pool_client_id,
+                "USERS_TABLE": self.users_table.table_name,
+                "POSTS_TABLE": self.posts_table.table_name,
+                "SUBREDDITS_TABLE": self.subreddits_table.table_name,
+                "COMMENTS_TABLE": self.comments_table.table_name,
+                "SUBSCRIPTIONS_TABLE": self.subscriptions_table.table_name,
+                "REGION": self.region,
+            },
+            timeout=cdk.Duration.seconds(30),
+        )
+
+        return subreddits_lambda
+
+    def _create_api_gateway(self, auth_lambda: lambda_.Function, comments_lambda: lambda_.Function, subreddits_lambda: lambda_.Function) -> apigateway.RestApi:
         """Create API Gateway with authentication endpoints."""
         api = apigateway.RestApi(
             self,
@@ -393,6 +466,7 @@ class RedditCloneStack(cdk.Stack):
                     "Authorization",
                     "X-Api-Key",
                     "X-Amz-Security-Token",
+                    "X-User-ID",
                 ],
             ),
         )
@@ -400,6 +474,7 @@ class RedditCloneStack(cdk.Stack):
         # API Gateway integrations
         auth_integration = apigateway.LambdaIntegration(auth_lambda)
         comments_integration = apigateway.LambdaIntegration(comments_lambda)
+        subreddits_integration = apigateway.LambdaIntegration(subreddits_lambda)
 
         # Auth endpoints - each endpoint needs its own resource path
         auth_resource = api.root.add_resource("auth")
@@ -468,6 +543,45 @@ class RedditCloneStack(cdk.Stack):
         comments_by_post_resource = post_resource.add_resource("comments")
         comments_by_post_resource.add_method("GET", comments_integration)
 
+        # Subreddits endpoints - use subreddits_lambda
+        subreddits_resource = api.root.add_resource("subreddits")
+        
+        # Create subreddit endpoint
+        subreddits_create_resource = subreddits_resource.add_resource("create")
+        subreddits_create_resource.add_method("POST", subreddits_integration)
+        
+        # Get subreddits list endpoint
+        subreddits_resource.add_method("GET", subreddits_integration)
+        
+        # Get subreddit by name endpoint
+        subreddits_name_resource = subreddits_resource.add_resource("name")
+        subreddit_name_resource = subreddits_name_resource.add_resource("{name}")
+        subreddit_name_resource.add_method("GET", subreddits_integration)
+        
+        # Individual subreddit endpoints
+        subreddit_resource = subreddits_resource.add_resource("{subreddit_id}")
+        subreddit_resource.add_method("GET", subreddits_integration)
+        subreddit_resource.add_method("PUT", subreddits_integration)
+        subreddit_resource.add_method("DELETE", subreddits_integration)
+        
+        # Join/Leave subreddit endpoints
+        subreddit_join_resource = subreddit_resource.add_resource("join")
+        subreddit_join_resource.add_method("POST", subreddits_integration)
+        
+        subreddit_leave_resource = subreddit_resource.add_resource("leave")
+        subreddit_leave_resource.add_method("POST", subreddits_integration)
+        
+        # Get subreddit posts endpoint
+        subreddit_posts_resource = subreddit_resource.add_resource("posts")
+        subreddit_posts_resource.add_method("GET", subreddits_integration)
+        
+        # Moderator management endpoints
+        subreddit_moderators_resource = subreddit_resource.add_resource("moderators")
+        subreddit_moderators_resource.add_method("POST", subreddits_integration)
+        
+        subreddit_moderator_resource = subreddit_moderators_resource.add_resource("{user_id}")
+        subreddit_moderator_resource.add_method("DELETE", subreddits_integration)
+
         return api
 
     def _create_outputs(self) -> None:
@@ -512,6 +626,13 @@ class RedditCloneStack(cdk.Stack):
             "SubredditsTableName",
             value=self.subreddits_table.table_name,
             description="DynamoDB Subreddits Table Name",
+        )
+
+        cdk.CfnOutput(
+            self,
+            "SubscriptionsTableName",
+            value=self.subscriptions_table.table_name,
+            description="DynamoDB Subscriptions Table Name",
         )
 
         cdk.CfnOutput(
