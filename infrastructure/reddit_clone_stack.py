@@ -22,6 +22,8 @@ class RedditCloneStack(cdk.Stack):
 
         # DynamoDB Tables
         self.users_table = self._create_users_table()
+        self.posts_table = self._create_posts_table()
+        self.subreddits_table = self._create_subreddits_table()
 
         # Cognito User Pool
         self.user_pool, self.user_pool_client = self._create_cognito_resources()
@@ -57,6 +59,101 @@ class RedditCloneStack(cdk.Stack):
             index_name="EmailIndex",
             partition_key=dynamodb.Attribute(
                 name="email", type=dynamodb.AttributeType.STRING
+            ),
+        )
+
+        return table
+
+    def _create_posts_table(self) -> dynamodb.Table:
+        """Create DynamoDB table for posts."""
+        table = dynamodb.Table(
+            self,
+            "PostsTable",
+            table_name="reddit-clone-posts",
+            partition_key=dynamodb.Attribute(
+                name="postId", type=dynamodb.AttributeType.STRING
+            ),
+            billing_mode=dynamodb.BillingMode.PAY_PER_REQUEST,
+            removal_policy=cdk.RemovalPolicy.DESTROY,  # Use RETAIN for production
+            point_in_time_recovery=True,
+        )
+
+        # GSI for posts by subreddit
+        table.add_global_secondary_index(
+            index_name="SubredditIndex",
+            partition_key=dynamodb.Attribute(
+                name="subredditId", type=dynamodb.AttributeType.STRING
+            ),
+            sort_key=dynamodb.Attribute(
+                name="createdAt", type=dynamodb.AttributeType.STRING
+            ),
+        )
+
+        # GSI for posts by author
+        table.add_global_secondary_index(
+            index_name="AuthorIndex",
+            partition_key=dynamodb.Attribute(
+                name="authorId", type=dynamodb.AttributeType.STRING
+            ),
+            sort_key=dynamodb.Attribute(
+                name="createdAt", type=dynamodb.AttributeType.STRING
+            ),
+        )
+
+        # GSI for posts by score (for hot/top sorting)
+        table.add_global_secondary_index(
+            index_name="ScoreIndex",
+            partition_key=dynamodb.Attribute(
+                name="score", type=dynamodb.AttributeType.NUMBER
+            ),
+            sort_key=dynamodb.Attribute(
+                name="createdAt", type=dynamodb.AttributeType.STRING
+            ),
+        )
+
+        # GSI for posts by type
+        table.add_global_secondary_index(
+            index_name="TypeIndex",
+            partition_key=dynamodb.Attribute(
+                name="postType", type=dynamodb.AttributeType.STRING
+            ),
+            sort_key=dynamodb.Attribute(
+                name="createdAt", type=dynamodb.AttributeType.STRING
+            ),
+        )
+
+        return table
+
+    def _create_subreddits_table(self) -> dynamodb.Table:
+        """Create DynamoDB table for subreddits."""
+        table = dynamodb.Table(
+            self,
+            "SubredditsTable",
+            table_name="reddit-clone-subreddits",
+            partition_key=dynamodb.Attribute(
+                name="subredditId", type=dynamodb.AttributeType.STRING
+            ),
+            billing_mode=dynamodb.BillingMode.PAY_PER_REQUEST,
+            removal_policy=cdk.RemovalPolicy.DESTROY,  # Use RETAIN for production
+            point_in_time_recovery=True,
+        )
+
+        # GSI for subreddits by name
+        table.add_global_secondary_index(
+            index_name="NameIndex",
+            partition_key=dynamodb.Attribute(
+                name="name", type=dynamodb.AttributeType.STRING
+            ),
+        )
+
+        # GSI for subreddits by subscriber count
+        table.add_global_secondary_index(
+            index_name="SubscriberCountIndex",
+            partition_key=dynamodb.Attribute(
+                name="subscriberCount", type=dynamodb.AttributeType.NUMBER
+            ),
+            sort_key=dynamodb.Attribute(
+                name="createdAt", type=dynamodb.AttributeType.STRING
             ),
         )
 
@@ -130,6 +227,10 @@ class RedditCloneStack(cdk.Stack):
                 resources=[
                     self.users_table.table_arn,
                     f"{self.users_table.table_arn}/index/*",
+                    self.posts_table.table_arn,
+                    f"{self.posts_table.table_arn}/index/*",
+                    self.subreddits_table.table_arn,
+                    f"{self.subreddits_table.table_arn}/index/*",
                 ],
             )
         )
@@ -169,13 +270,15 @@ class RedditCloneStack(cdk.Stack):
             self,
             "AuthLambda",
             runtime=lambda_.Runtime.PYTHON_3_9,
-            handler="lambda_handler_standalone_v1.handler",  # Use the standalone v1 handler
+            handler="lambda_handler_phase2.handler",  # Use the Phase 2 handler
             code=lambda_.Code.from_asset(str(lambda_code_path)),
             role=execution_role,
             environment={
                 "USER_POOL_ID": self.user_pool.user_pool_id,
                 "CLIENT_ID": self.user_pool_client.user_pool_client_id,
                 "USERS_TABLE": self.users_table.table_name,
+                "POSTS_TABLE": self.posts_table.table_name,
+                "SUBREDDITS_TABLE": self.subreddits_table.table_name,
                 "REGION": self.region,
             },
             timeout=cdk.Duration.seconds(30),
@@ -229,6 +332,26 @@ class RedditCloneStack(cdk.Stack):
         reset_password_resource = auth_resource.add_resource("reset-password")
         reset_password_resource.add_method("POST", auth_integration)
 
+        # Posts endpoints
+        posts_resource = api.root.add_resource("posts")
+        
+        # Create post endpoint
+        posts_create_resource = posts_resource.add_resource("create")
+        posts_create_resource.add_method("POST", auth_integration)
+        
+        # Get posts endpoint
+        posts_resource.add_method("GET", auth_integration)
+        
+        # Individual post endpoints
+        post_resource = posts_resource.add_resource("{post_id}")
+        post_resource.add_method("GET", auth_integration)
+        post_resource.add_method("PUT", auth_integration)
+        post_resource.add_method("DELETE", auth_integration)
+        
+        # Vote post endpoint
+        vote_resource = post_resource.add_resource("vote")
+        vote_resource.add_method("POST", auth_integration)
+
         return api
 
     def _create_outputs(self) -> None:
@@ -259,4 +382,18 @@ class RedditCloneStack(cdk.Stack):
             "UsersTableName",
             value=self.users_table.table_name,
             description="DynamoDB Users Table Name",
+        )
+
+        cdk.CfnOutput(
+            self,
+            "PostsTableName",
+            value=self.posts_table.table_name,
+            description="DynamoDB Posts Table Name",
+        )
+
+        cdk.CfnOutput(
+            self,
+            "SubredditsTableName",
+            value=self.subreddits_table.table_name,
+            description="DynamoDB Subreddits Table Name",
         )

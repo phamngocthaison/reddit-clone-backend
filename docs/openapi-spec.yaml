@@ -2,24 +2,32 @@ openapi: 3.0.3
 info:
   title: Reddit Clone Backend API
   description: |
-    API cho Reddit Clone Backend với các chức năng authentication cơ bản.
+    Complete API specification for Reddit Clone Backend - Authentication & Posts System
+    
+    ## Features
+    - User authentication and management
+    - Posts CRUD operations
+    - Post types (text, link, image, video, poll)
+    - Voting system
+    - Filtering and sorting
+    - Pagination
     
     ## Authentication
-    API sử dụng JWT tokens cho authentication. Tất cả protected endpoints yêu cầu `Authorization` header:
+    This API uses JWT tokens for authentication. Include the token in the Authorization header:
     ```
-    Authorization: Bearer <access_token>
+    Authorization: Bearer <your-jwt-token>
     ```
     
-    ## Base URL
-    - Production: `https://ugn2h0yxwf.execute-api.ap-southeast-1.amazonaws.com/prod`
-    - Local Development: `http://localhost:5000`
+    ## Rate Limiting
+    - 1000 requests per hour per user
+    - 100 requests per minute per user
     
     ## Error Handling
-    Tất cả responses đều follow format chuẩn với `success`, `message`, `data`, và `error` fields.
-  version: 1.0.0
+    All errors follow a consistent format with error codes and messages.
+  version: 2.0.0
   contact:
-    name: Reddit Clone Team
-    email: support@redditclone.com
+    name: Reddit Clone Backend Team
+    email: support@reddit-clone.com
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
@@ -27,273 +35,175 @@ info:
 servers:
   - url: https://ugn2h0yxwf.execute-api.ap-southeast-1.amazonaws.com/prod
     description: Production server
-  - url: http://localhost:5000
-    description: Local development server
+  - url: https://dev-api.reddit-clone.com
+    description: Development server
 
 tags:
   - name: Authentication
-    description: User authentication and authorization endpoints
+    description: User authentication and management
+  - name: Posts
+    description: Posts CRUD operations and management
+  - name: Health
+    description: Health check endpoints
 
 paths:
+  # Health Check
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Health check
+      description: Check if the API is running
+      responses:
+        '200':
+          description: API is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "API is healthy"
+                  timestamp:
+                    type: string
+                    format: date-time
+                    example: "2024-01-15T10:30:00Z"
+
+  # Authentication Endpoints
   /auth/register:
     post:
       tags:
         - Authentication
-      summary: Register a new user
-      description: Tạo tài khoản user mới với email, username và password
-      operationId: registerUser
+      summary: Register new user
+      description: Create a new user account
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/RegisterRequest'
-            examples:
-              valid:
-                summary: Valid registration
-                value:
-                  email: "user@example.com"
-                  username: "username123"
-                  password: "SecurePass123"
-              invalid_email:
-                summary: Invalid email
-                value:
-                  email: "invalid-email"
-                  username: "username123"
-                  password: "SecurePass123"
-              weak_password:
-                summary: Weak password
-                value:
-                  email: "user@example.com"
-                  username: "username123"
-                  password: "weak"
       responses:
-        '200':
+        '201':
           description: User registered successfully
           content:
             application/json:
               schema:
-                allOf:
-                  - $ref: '#/components/schemas/SuccessResponse'
-                  - type: object
-                    properties:
-                      data:
-                        type: object
-                        properties:
-                          user:
-                            $ref: '#/components/schemas/UserResponse'
-              examples:
-                success:
-                  summary: Successful registration
-                  value:
-                    success: true
-                    message: "User registered successfully"
-                    data:
-                      user:
-                        userId: "user_1757350912_8004796b44e0429"
-                        email: "user@example.com"
-                        username: "username123"
-                        createdAt: "2025-09-08T17:01:52.011263Z"
-                        isActive: true
-                    error: null
+                $ref: '#/components/schemas/RegisterResponse'
         '400':
-          description: Bad request - validation errors
+          description: Bad request
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-              examples:
-                invalid_email:
-                  summary: Invalid email format
-                  value:
-                    success: false
-                    message: null
-                    data: null
-                    error:
-                      code: "REGISTRATION_ERROR"
-                      message: "Invalid email format"
-                user_exists:
-                  summary: User already exists
-                  value:
-                    success: false
-                    message: null
-                    data: null
-                    error:
-                      code: "REGISTRATION_ERROR"
-                      message: "User with this email already exists"
-        '500':
-          description: Internal server error
+        '409':
+          description: User already exists
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-    options:
-      tags:
-        - Authentication
-      summary: CORS preflight for registration
-      description: Handle CORS preflight requests
-      responses:
-        '200':
-          description: CORS preflight successful
-          headers:
-            Access-Control-Allow-Origin:
-              schema:
-                type: string
-                example: "*"
-            Access-Control-Allow-Methods:
-              schema:
-                type: string
-                example: "GET, POST, PUT, DELETE, OPTIONS"
-            Access-Control-Allow-Headers:
-              schema:
-                type: string
-                example: "Content-Type, Authorization"
 
   /auth/login:
     post:
       tags:
         - Authentication
-      summary: User login
-      description: Đăng nhập user với email và password
-      operationId: loginUser
+      summary: Login user
+      description: Authenticate user and return JWT tokens
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/LoginRequest'
-            examples:
-              valid:
-                summary: Valid login
-                value:
-                  email: "user@example.com"
-                  password: "SecurePass123"
-              invalid:
-                summary: Invalid credentials
-                value:
-                  email: "user@example.com"
-                  password: "WrongPassword"
       responses:
         '200':
           description: Login successful
           content:
             application/json:
               schema:
-                allOf:
-                  - $ref: '#/components/schemas/SuccessResponse'
-                  - type: object
-                    properties:
-                      data:
-                        $ref: '#/components/schemas/LoginResponse'
-              examples:
-                success:
-                  summary: Successful login
-                  value:
-                    success: true
-                    message: "Login successful"
-                    data:
-                      user:
-                        userId: "user_1757350912_8004796b44e0429"
-                        email: "user@example.com"
-                        username: "username123"
-                        createdAt: "2025-09-08T17:01:52.011263Z"
-                        isActive: true
-                      accessToken: "eyJ0eXAiOiJKV1QiLCJraWQiOiJkdW1teSIsImFsZyI6IlJTMjU2In0..."
-                      refreshToken: "ddc65f38-c806-41c7-840a-98a5a5d7f604"
-                      idToken: "eyJ0eXAiOiJKV1QiLCJraWQiOiJkdW1teSIsImFsZyI6IlJTMjU2In0..."
-                    error: null
+                $ref: '#/components/schemas/LoginResponse'
         '400':
-          description: Bad request - invalid credentials
+          description: Bad request
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-              examples:
-                invalid_credentials:
-                  summary: Invalid credentials
-                  value:
-                    success: false
-                    message: null
-                    data: null
-                    error:
-                      code: "LOGIN_ERROR"
-                      message: "Invalid credentials"
-                user_not_found:
-                  summary: User not found
-                  value:
-                    success: false
-                    message: null
-                    data: null
-                    error:
-                      code: "LOGIN_ERROR"
-                      message: "User not found"
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
-  /auth/logout:
+  /auth/refresh:
     post:
       tags:
         - Authentication
-      summary: User logout
-      description: Đăng xuất user và invalidate token
-      operationId: logoutUser
-      security:
-        - bearerAuth: []
+      summary: Refresh access token
+      description: Get new access token using refresh token
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              example: {}
+              $ref: '#/components/schemas/RefreshRequest'
       responses:
         '200':
-          description: Logout successful
+          description: Token refreshed successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SuccessResponse'
-              examples:
-                success:
-                  summary: Successful logout
-                  value:
-                    success: true
-                    message: "Logout successful"
-                    data: null
-                    error: null
-        '401':
-          description: Unauthorized - invalid or missing token
+                $ref: '#/components/schemas/RefreshResponse'
+        '400':
+          description: Bad request
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-              examples:
-                unauthorized:
-                  summary: Unauthorized
-                  value:
-                    success: false
-                    message: null
-                    data: null
-                    error:
-                      code: "UNAUTHORIZED"
-                      message: "Invalid or missing authorization token"
+        '401':
+          description: Invalid refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/me:
+    get:
+      tags:
+        - Authentication
+      summary: Get current user
+      description: Get current user information
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: User information retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /auth/forgot-password:
     post:
       tags:
         - Authentication
-      summary: Forgot password
-      description: Gửi email reset password
-      operationId: forgotPassword
+      summary: Request password reset
+      description: Send password reset email
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/ForgotPasswordRequest'
-            examples:
-              valid:
-                summary: Valid email
-                value:
-                  email: "user@example.com"
       responses:
         '200':
           description: Password reset email sent
@@ -301,97 +211,322 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SuccessResponse'
-              examples:
-                success:
-                  summary: Email sent
-                  value:
-                    success: true
-                    message: "Password reset code sent to email"
-                    data: null
-                    error: null
         '400':
-          description: Bad request - user not found
+          description: Bad request
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-              examples:
-                user_not_found:
-                  summary: User not found
-                  value:
-                    success: false
-                    message: null
-                    data: null
-                    error:
-                      code: "FORGOT_PASSWORD_ERROR"
-                      message: "User not found"
 
   /auth/reset-password:
     post:
       tags:
         - Authentication
       summary: Reset password
-      description: Reset password với confirmation code
-      operationId: resetPassword
+      description: Reset password with verification code
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/ResetPasswordRequest'
-            examples:
-              valid:
-                summary: Valid reset
-                value:
-                  email: "user@example.com"
-                  confirmationCode: "123456"
-                  newPassword: "NewSecurePass123"
-              invalid_code:
-                summary: Invalid confirmation code
-                value:
-                  email: "user@example.com"
-                  confirmationCode: "invalid"
-                  newPassword: "NewSecurePass123"
       responses:
         '200':
-          description: Password reset successful
+          description: Password reset successfully
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/SuccessResponse'
-              examples:
-                success:
-                  summary: Password reset successful
-                  value:
-                    success: true
-                    message: "Password reset successful"
-                    data: null
-                    error: null
         '400':
-          description: Bad request - invalid code or validation error
+          description: Bad request
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-              examples:
-                invalid_code:
-                  summary: Invalid confirmation code
-                  value:
-                    success: false
-                    message: null
-                    data: null
-                    error:
-                      code: "RESET_PASSWORD_ERROR"
-                      message: "Invalid confirmation code"
-                expired_code:
-                  summary: Expired confirmation code
-                  value:
-                    success: false
-                    message: null
-                    data: null
-                    error:
-                      code: "RESET_PASSWORD_ERROR"
-                      message: "Confirmation code has expired"
+
+  # Posts Endpoints
+  /posts:
+    get:
+      tags:
+        - Posts
+      summary: Get posts
+      description: Get list of posts with filtering and pagination
+      parameters:
+        - name: subreddit_id
+          in: query
+          description: Filter by subreddit ID
+          required: false
+          schema:
+            type: string
+            example: "subreddit_123"
+        - name: author_id
+          in: query
+          description: Filter by author ID
+          required: false
+          schema:
+            type: string
+            example: "user_123"
+        - name: sort
+          in: query
+          description: Sort order
+          required: false
+          schema:
+            type: string
+            enum: [hot, new, top, controversial]
+            default: hot
+        - name: limit
+          in: query
+          description: Number of posts to return
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: offset
+          in: query
+          description: Number of posts to skip
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: post_type
+          in: query
+          description: Filter by post type
+          required: false
+          schema:
+            type: string
+            enum: [text, link, image, video, poll]
+        - name: is_nsfw
+          in: query
+          description: Filter by NSFW status
+          required: false
+          schema:
+            type: boolean
+        - name: is_spoiler
+          in: query
+          description: Filter by spoiler status
+          required: false
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Posts retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostsResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /posts/create:
+    post:
+      tags:
+        - Posts
+      summary: Create post
+      description: Create a new post
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePostRequest'
+      responses:
+        '201':
+          description: Post created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /posts/{post_id}:
+    get:
+      tags:
+        - Posts
+      summary: Get post by ID
+      description: Get a specific post by its ID
+      parameters:
+        - name: post_id
+          in: path
+          required: true
+          description: Post ID
+          schema:
+            type: string
+            example: "post_1757473451_1f984949"
+      responses:
+        '200':
+          description: Post retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostResponse'
+        '404':
+          description: Post not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      tags:
+        - Posts
+      summary: Update post
+      description: Update an existing post
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: post_id
+          in: path
+          required: true
+          description: Post ID
+          schema:
+            type: string
+            example: "post_1757473451_1f984949"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePostRequest'
+      responses:
+        '200':
+          description: Post updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Access denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Post not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      tags:
+        - Posts
+      summary: Delete post
+      description: Delete a post
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: post_id
+          in: path
+          required: true
+          description: Post ID
+          schema:
+            type: string
+            example: "post_1757473451_1f984949"
+      responses:
+        '200':
+          description: Post deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Access denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Post not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /posts/{post_id}/vote:
+    post:
+      tags:
+        - Posts
+      summary: Vote on post
+      description: Vote on a post (upvote, downvote, or remove vote)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: post_id
+          in: path
+          required: true
+          description: Post ID
+          schema:
+            type: string
+            example: "post_1757473451_1f984949"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VoteRequest'
+      responses:
+        '200':
+          description: Vote processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VoteResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Post not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
 components:
   securitySchemes:
@@ -399,33 +534,46 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
-      description: JWT token for authentication
 
   schemas:
+    # Authentication Schemas
     RegisterRequest:
       type: object
       required:
-        - email
         - username
+        - email
         - password
       properties:
-        email:
-          type: string
-          format: email
-          description: User email address
-          example: "user@example.com"
         username:
           type: string
           minLength: 3
           maxLength: 20
-          pattern: "^[a-zA-Z0-9_]+$"
-          description: Username (3-20 characters, alphanumeric and underscores only)
-          example: "username123"
+          pattern: '^[a-zA-Z0-9_]+$'
+          example: "john_doe"
+        email:
+          type: string
+          format: email
+          example: "john@example.com"
         password:
           type: string
           minLength: 8
-          description: Password (minimum 8 characters with uppercase, lowercase, and numbers)
-          example: "SecurePass123"
+          maxLength: 128
+          example: "password123"
+
+    RegisterResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "User registered successfully"
+        data:
+          type: object
+          properties:
+            user:
+              $ref: '#/components/schemas/User'
 
     LoginRequest:
       type: object
@@ -436,12 +584,51 @@ components:
         email:
           type: string
           format: email
-          description: User email address
-          example: "user@example.com"
+          example: "john@example.com"
         password:
           type: string
-          description: User password
-          example: "SecurePass123"
+          example: "password123"
+
+    LoginResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Login successful"
+        data:
+          type: object
+          properties:
+            user:
+              $ref: '#/components/schemas/User'
+            tokens:
+              $ref: '#/components/schemas/Tokens'
+
+    RefreshRequest:
+      type: object
+      required:
+        - refresh_token
+      properties:
+        refresh_token:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+
+    RefreshResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Token refreshed successfully"
+        data:
+          type: object
+          properties:
+            tokens:
+              $ref: '#/components/schemas/Tokens'
 
     ForgotPasswordRequest:
       type: object
@@ -451,145 +638,423 @@ components:
         email:
           type: string
           format: email
-          description: User email address
-          example: "user@example.com"
+          example: "john@example.com"
 
     ResetPasswordRequest:
       type: object
       required:
         - email
-        - confirmationCode
-        - newPassword
+        - verification_code
+        - new_password
       properties:
         email:
           type: string
           format: email
-          description: User email address
-          example: "user@example.com"
-        confirmationCode:
+          example: "john@example.com"
+        verification_code:
           type: string
-          description: Confirmation code from email
           example: "123456"
-        newPassword:
+        new_password:
           type: string
           minLength: 8
-          description: New password (minimum 8 characters with uppercase, lowercase, and numbers)
-          example: "NewSecurePass123"
+          maxLength: 128
+          example: "newpassword123"
 
     UserResponse:
       type: object
       properties:
-        userId:
+        success:
+          type: boolean
+          example: true
+        message:
           type: string
-          description: Unique user identifier
-          example: "user_1757350912_8004796b44e0429"
+          example: "User information retrieved successfully"
+        data:
+          type: object
+          properties:
+            user:
+              $ref: '#/components/schemas/User'
+
+    # Posts Schemas
+    CreatePostRequest:
+      type: object
+      required:
+        - title
+        - subreddit_id
+        - post_type
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 300
+          example: "My First Post"
+        content:
+          type: string
+          maxLength: 40000
+          example: "This is the content of my post"
+        subreddit_id:
+          type: string
+          example: "subreddit_123"
+        post_type:
+          type: string
+          enum: [text, link, image, video, poll]
+          example: "text"
+        url:
+          type: string
+          format: uri
+          example: "https://example.com"
+        media_urls:
+          type: array
+          items:
+            type: string
+            format: uri
+          example: ["https://example.com/image1.jpg", "https://example.com/image2.jpg"]
+        is_nsfw:
+          type: boolean
+          default: false
+          example: false
+        is_spoiler:
+          type: boolean
+          default: false
+          example: false
+        flair:
+          type: string
+          maxLength: 50
+          example: "Discussion"
+        tags:
+          type: array
+          items:
+            type: string
+            maxLength: 30
+          maxItems: 10
+          example: ["programming", "tutorial", "backend"]
+
+    UpdatePostRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 300
+          example: "Updated Post Title"
+        content:
+          type: string
+          maxLength: 40000
+          example: "This is the updated content of my post"
+        is_nsfw:
+          type: boolean
+          example: false
+        is_spoiler:
+          type: boolean
+          example: true
+        flair:
+          type: string
+          maxLength: 50
+          example: "Updated Flair"
+        tags:
+          type: array
+          items:
+            type: string
+            maxLength: 30
+          maxItems: 10
+          example: ["updated", "tags", "backend"]
+
+    VoteRequest:
+      type: object
+      required:
+        - vote_type
+      properties:
+        vote_type:
+          type: string
+          enum: [upvote, downvote, remove]
+          example: "upvote"
+
+    # Response Schemas
+    User:
+      type: object
+      properties:
+        user_id:
+          type: string
+          example: "user_1757432106_d66ab80f40704b1"
+        username:
+          type: string
+          example: "john_doe"
         email:
           type: string
           format: email
-          description: User email address
-          example: "user@example.com"
-        username:
-          type: string
-          description: Username
-          example: "username123"
-        createdAt:
+          example: "john@example.com"
+        created_at:
           type: string
           format: date-time
-          description: User creation timestamp
-          example: "2025-09-08T17:01:52.011263Z"
-        isActive:
+          example: "2024-01-15T10:30:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00Z"
+        is_verified:
           type: boolean
-          description: User active status
+          example: false
+        is_active:
+          type: boolean
           example: true
 
-    LoginResponse:
+    Tokens:
       type: object
       properties:
-        user:
-          $ref: '#/components/schemas/UserResponse'
-        accessToken:
+        access_token:
           type: string
-          description: JWT access token
-          example: "eyJ0eXAiOiJKV1QiLCJraWQiOiJkdW1teSIsImFsZyI6IlJTMjU2In0..."
-        refreshToken:
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        refresh_token:
           type: string
-          description: Refresh token for getting new access tokens
-          example: "ddc65f38-c806-41c7-840a-98a5a5d7f604"
-        idToken:
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        id_token:
           type: string
-          description: JWT ID token
-          example: "eyJ0eXAiOiJKV1QiLCJraWQiOiJkdW1teSIsImFsZyI6IlJTMjU2In0..."
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        expires_in:
+          type: integer
+          example: 3600
+
+    Post:
+      type: object
+      properties:
+        post_id:
+          type: string
+          example: "post_1757473451_1f984949"
+        title:
+          type: string
+          example: "My First Post"
+        content:
+          type: string
+          example: "This is the content of my post"
+        author_id:
+          type: string
+          example: "user_1757432106_d66ab80f40704b1"
+        subreddit_id:
+          type: string
+          example: "subreddit_123"
+        post_type:
+          type: string
+          enum: [text, link, image, video, poll]
+          example: "text"
+        url:
+          type: string
+          format: uri
+          example: "https://example.com"
+        media_urls:
+          type: array
+          items:
+            type: string
+            format: uri
+          example: ["https://example.com/image1.jpg"]
+        score:
+          type: integer
+          example: 42
+        upvotes:
+          type: integer
+          example: 50
+        downvotes:
+          type: integer
+          example: 8
+        comment_count:
+          type: integer
+          example: 15
+        view_count:
+          type: integer
+          example: 1000
+        created_at:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00Z"
+        is_deleted:
+          type: boolean
+          example: false
+        is_locked:
+          type: boolean
+          example: false
+        is_sticky:
+          type: boolean
+          example: false
+        is_nsfw:
+          type: boolean
+          example: false
+        is_spoiler:
+          type: boolean
+          example: false
+        flair:
+          type: string
+          example: "Discussion"
+        tags:
+          type: array
+          items:
+            type: string
+          example: ["programming", "tutorial", "backend"]
+        awards:
+          type: array
+          items:
+            type: object
+            properties:
+              award_id:
+                type: string
+                example: "award_123"
+              award_name:
+                type: string
+                example: "Gold"
+              award_icon:
+                type: string
+                example: "🥇"
+              count:
+                type: integer
+                example: 1
+        user_vote:
+          type: string
+          enum: [upvote, downvote, null]
+          example: "upvote"
+
+    PostResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Post retrieved successfully"
+        data:
+          type: object
+          properties:
+            post:
+              $ref: '#/components/schemas/Post'
+
+    PostsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Posts retrieved successfully"
+        data:
+          type: object
+          properties:
+            posts:
+              type: array
+              items:
+                $ref: '#/components/schemas/Post'
+            total_count:
+              type: integer
+              example: 150
+            has_more:
+              type: boolean
+              example: true
+            next_offset:
+              type: integer
+              example: 20
+
+    VoteResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Vote processed successfully"
+        data:
+          type: object
+          properties:
+            stats:
+              type: object
+              properties:
+                post_id:
+                  type: string
+                  example: "post_1757473451_1f984949"
+                score:
+                  type: integer
+                  example: 43
+                upvotes:
+                  type: integer
+                  example: 51
+                downvotes:
+                  type: integer
+                  example: 8
+                comment_count:
+                  type: integer
+                  example: 15
+                view_count:
+                  type: integer
+                  example: 1000
 
     SuccessResponse:
       type: object
       properties:
         success:
           type: boolean
-          description: Indicates if the request was successful
           example: true
         message:
           type: string
-          nullable: true
-          description: Success message
-          example: "Operation successful"
-        data:
-          type: object
-          nullable: true
-          description: Response data
-        error:
-          type: object
-          nullable: true
-          description: Error information (null for success responses)
+          example: "Operation completed successfully"
 
     ErrorResponse:
       type: object
       properties:
         success:
           type: boolean
-          description: Indicates if the request was successful
           example: false
-        message:
-          type: string
-          nullable: true
-          description: Error message (null for error responses)
-          example: null
-        data:
-          type: object
-          nullable: true
-          description: Response data (null for error responses)
-          example: null
         error:
           type: object
           properties:
             code:
               type: string
-              description: Error code
-              example: "REGISTRATION_ERROR"
+              example: "VALIDATION_ERROR"
             message:
               type: string
-              description: Error message
-              example: "Invalid email format"
+              example: "Invalid input data"
+            details:
+              type: object
+              additionalProperties: true
+              example:
+                field: "email"
+                reason: "Invalid email format"
 
-  examples:
-    UserExample:
-      summary: Example user
-      value:
-        userId: "user_1757350912_8004796b44e0429"
-        email: "user@example.com"
-        username: "username123"
-        createdAt: "2025-09-08T17:01:52.011263Z"
-        isActive: true
-
-    ErrorExample:
-      summary: Example error
-      value:
-        success: false
-        message: null
-        data: null
-        error:
-          code: "REGISTRATION_ERROR"
-          message: "Invalid email format"
-
-externalDocs:
-  description: Find more info about Reddit Clone Backend
-  url: https://github.com/reddit-clone/backend
+    # Error Codes
+    ErrorCodes:
+      type: object
+      properties:
+        VALIDATION_ERROR:
+          type: string
+          example: "Invalid input data"
+        AUTHENTICATION_FAILED:
+          type: string
+          example: "Invalid credentials"
+        UNAUTHORIZED:
+          type: string
+          example: "Authentication required"
+        FORBIDDEN:
+          type: string
+          example: "Access denied"
+        NOT_FOUND:
+          type: string
+          example: "Resource not found"
+        CONFLICT:
+          type: string
+          example: "Resource already exists"
+        RATE_LIMIT_EXCEEDED:
+          type: string
+          example: "Rate limit exceeded"
+        INTERNAL_SERVER_ERROR:
+          type: string
+          example: "Internal server error"
+        POST_NOT_FOUND:
+          type: string
+          example: "Post not found"
+        POST_ACCESS_DENIED:
+          type: string
+          example: "Access denied to post"
+        POST_VALIDATION_ERROR:
+          type: string
+          example: "Invalid post data"

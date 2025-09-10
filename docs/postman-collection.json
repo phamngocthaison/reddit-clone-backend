@@ -1,9 +1,9 @@
 {
   "info": {
     "name": "Reddit Clone Backend API",
-    "description": "Complete API collection for Reddit Clone Backend authentication endpoints",
+    "description": "Complete API collection for Reddit Clone Backend - Authentication & Posts System",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "version": "1.0.0"
+    "version": "2.0.0"
   },
   "variable": [
     {
@@ -44,6 +44,16 @@
     {
       "key": "password",
       "value": "TestPass123",
+      "type": "string"
+    },
+    {
+      "key": "postId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "subredditId",
+      "value": "subreddit_test_123",
       "type": "string"
     }
   ],
@@ -674,6 +684,850 @@
       ]
     },
     {
+      "name": "Posts",
+      "item": [
+        {
+          "name": "Create Post - Text",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Response has success true', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "});",
+                  "",
+                  "pm.test('Response contains post data', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data).to.have.property('post');",
+                  "    pm.expect(jsonData.data.post).to.have.property('post_id');",
+                  "    pm.expect(jsonData.data.post).to.have.property('title');",
+                  "    pm.expect(jsonData.data.post).to.have.property('content');",
+                  "    pm.expect(jsonData.data.post).to.have.property('author_id');",
+                  "    pm.expect(jsonData.data.post).to.have.property('subreddit_id');",
+                  "    pm.expect(jsonData.data.post).to.have.property('post_type');",
+                  "    pm.expect(jsonData.data.post).to.have.property('score');",
+                  "    pm.expect(jsonData.data.post).to.have.property('upvotes');",
+                  "    pm.expect(jsonData.data.post).to.have.property('downvotes');",
+                  "    pm.expect(jsonData.data.post).to.have.property('created_at');",
+                  "    pm.expect(jsonData.data.post).to.have.property('updated_at');",
+                  "    pm.expect(jsonData.data.post).to.have.property('is_deleted');",
+                  "    pm.expect(jsonData.data.post).to.have.property('is_locked');",
+                  "    pm.expect(jsonData.data.post).to.have.property('is_sticky');",
+                  "    pm.expect(jsonData.data.post).to.have.property('is_nsfw');",
+                  "    pm.expect(jsonData.data.post).to.have.property('is_spoiler');",
+                  "    pm.expect(jsonData.data.post).to.have.property('tags');",
+                  "    pm.expect(jsonData.data.post).to.have.property('awards');",
+                  "    pm.expect(jsonData.data.post).to.have.property('user_vote');",
+                  "    ",
+                  "    // Save post ID for other tests",
+                  "    pm.collectionVariables.set('postId', jsonData.data.post.post_id);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "X-User-ID",
+                "value": "{{userId}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"My First Post\",\n  \"content\": \"This is the content of my post. It can be quite long and contain multiple paragraphs.\",\n  \"subreddit_id\": \"{{subredditId}}\",\n  \"post_type\": \"text\",\n  \"is_nsfw\": false,\n  \"is_spoiler\": false,\n  \"flair\": \"Discussion\",\n  \"tags\": [\"programming\", \"tutorial\", \"backend\"]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/posts/create",
+              "host": ["{{baseUrl}}"],
+              "path": ["posts", "create"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Post - Link",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Response has success true', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "});",
+                  "",
+                  "pm.test('Response contains post data', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data).to.have.property('post');",
+                  "    pm.expect(jsonData.data.post).to.have.property('post_id');",
+                  "    pm.expect(jsonData.data.post).to.have.property('title');",
+                  "    pm.expect(jsonData.data.post).to.have.property('url');",
+                  "    pm.expect(jsonData.data.post).to.have.property('post_type');",
+                  "    pm.expect(jsonData.data.post.post_type).to.eql('link');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "X-User-ID",
+                "value": "{{userId}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Check out this awesome tutorial!\",\n  \"content\": null,\n  \"subreddit_id\": \"{{subredditId}}\",\n  \"post_type\": \"link\",\n  \"url\": \"https://example.com/tutorial\",\n  \"is_nsfw\": false,\n  \"is_spoiler\": false,\n  \"flair\": \"Tutorial\",\n  \"tags\": [\"tutorial\", \"programming\"]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/posts/create",
+              "host": ["{{baseUrl}}"],
+              "path": ["posts", "create"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Post - Invalid Data",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test('Response has success false', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.false;",
+                  "});",
+                  "",
+                  "pm.test('Response contains error', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.error).to.have.property('code');",
+                  "    pm.expect(jsonData.error).to.have.property('message');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "X-User-ID",
+                "value": "{{userId}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"\",\n  \"content\": \"This post has no title\",\n  \"subreddit_id\": \"{{subredditId}}\",\n  \"post_type\": \"text\",\n  \"is_nsfw\": false,\n  \"is_spoiler\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/posts/create",
+              "host": ["{{baseUrl}}"],
+              "path": ["posts", "create"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Posts - All",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has success true', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "});",
+                  "",
+                  "pm.test('Response contains posts data', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data).to.have.property('posts');",
+                  "    pm.expect(jsonData.data).to.have.property('total_count');",
+                  "    pm.expect(jsonData.data).to.have.property('has_more');",
+                  "    pm.expect(jsonData.data).to.have.property('next_offset');",
+                  "    pm.expect(jsonData.data.posts).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/posts",
+              "host": ["{{baseUrl}}"],
+              "path": ["posts"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Posts - With Filters",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has success true', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "});",
+                  "",
+                  "pm.test('Response contains posts data', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data).to.have.property('posts');",
+                  "    pm.expect(jsonData.data).to.have.property('total_count');",
+                  "    pm.expect(jsonData.data).to.have.property('has_more');",
+                  "    pm.expect(jsonData.data).to.have.property('next_offset');",
+                  "    pm.expect(jsonData.data.posts).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/posts?subreddit_id={{subredditId}}&sort=hot&limit=10&offset=0&post_type=text&is_nsfw=false",
+              "host": ["{{baseUrl}}"],
+              "path": ["posts"],
+              "query": [
+                {
+                  "key": "subreddit_id",
+                  "value": "{{subredditId}}"
+                },
+                {
+                  "key": "sort",
+                  "value": "hot"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                },
+                {
+                  "key": "post_type",
+                  "value": "text"
+                },
+                {
+                  "key": "is_nsfw",
+                  "value": "false"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Post by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has success true', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "});",
+                  "",
+                  "pm.test('Response contains post data', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data).to.have.property('post');",
+                  "    pm.expect(jsonData.data.post).to.have.property('post_id');",
+                  "    pm.expect(jsonData.data.post).to.have.property('title');",
+                  "    pm.expect(jsonData.data.post).to.have.property('content');",
+                  "    pm.expect(jsonData.data.post).to.have.property('author_id');",
+                  "    pm.expect(jsonData.data.post).to.have.property('subreddit_id');",
+                  "    pm.expect(jsonData.data.post).to.have.property('post_type');",
+                  "    pm.expect(jsonData.data.post).to.have.property('score');",
+                  "    pm.expect(jsonData.data.post).to.have.property('upvotes');",
+                  "    pm.expect(jsonData.data.post).to.have.property('downvotes');",
+                  "    pm.expect(jsonData.data.post).to.have.property('created_at');",
+                  "    pm.expect(jsonData.data.post).to.have.property('updated_at');",
+                  "    pm.expect(jsonData.data.post).to.have.property('is_deleted');",
+                  "    pm.expect(jsonData.data.post).to.have.property('is_locked');",
+                  "    pm.expect(jsonData.data.post).to.have.property('is_sticky');",
+                  "    pm.expect(jsonData.data.post).to.have.property('is_nsfw');",
+                  "    pm.expect(jsonData.data.post).to.have.property('is_spoiler');",
+                  "    pm.expect(jsonData.data.post).to.have.property('tags');",
+                  "    pm.expect(jsonData.data.post).to.have.property('awards');",
+                  "    pm.expect(jsonData.data.post).to.have.property('user_vote');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/posts/{{postId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["posts", "{{postId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Post by ID - Not Found",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 404', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "",
+                  "pm.test('Response has success false', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.false;",
+                  "});",
+                  "",
+                  "pm.test('Response contains error', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.error).to.have.property('code');",
+                  "    pm.expect(jsonData.error).to.have.property('message');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/posts/nonexistent_post_id",
+              "host": ["{{baseUrl}}"],
+              "path": ["posts", "nonexistent_post_id"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Post",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has success true', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "});",
+                  "",
+                  "pm.test('Response contains updated post data', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data).to.have.property('post');",
+                  "    pm.expect(jsonData.data.post).to.have.property('post_id');",
+                  "    pm.expect(jsonData.data.post).to.have.property('title');",
+                  "    pm.expect(jsonData.data.post).to.have.property('content');",
+                  "    pm.expect(jsonData.data.post).to.have.property('updated_at');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "X-User-ID",
+                "value": "{{userId}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Updated Post Title\",\n  \"content\": \"This is the updated content of my post.\",\n  \"is_nsfw\": false,\n  \"is_spoiler\": true,\n  \"flair\": \"Updated Flair\",\n  \"tags\": [\"updated\", \"tags\", \"backend\"]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/posts/{{postId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["posts", "{{postId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Post - Access Denied",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 403', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});",
+                  "",
+                  "pm.test('Response has success false', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.false;",
+                  "});",
+                  "",
+                  "pm.test('Response contains error', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.error).to.have.property('code');",
+                  "    pm.expect(jsonData.error).to.have.property('message');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "X-User-ID",
+                "value": "different_user_id",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Updated Post Title\",\n  \"content\": \"This is the updated content of my post.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/posts/{{postId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["posts", "{{postId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Vote Post - Upvote",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has success true', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "});",
+                  "",
+                  "pm.test('Response contains stats data', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data).to.have.property('stats');",
+                  "    pm.expect(jsonData.data.stats).to.have.property('post_id');",
+                  "    pm.expect(jsonData.data.stats).to.have.property('score');",
+                  "    pm.expect(jsonData.data.stats).to.have.property('upvotes');",
+                  "    pm.expect(jsonData.data.stats).to.have.property('downvotes');",
+                  "    pm.expect(jsonData.data.stats).to.have.property('comment_count');",
+                  "    pm.expect(jsonData.data.stats).to.have.property('view_count');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "X-User-ID",
+                "value": "{{userId}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vote_type\": \"upvote\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/posts/{{postId}}/vote",
+              "host": ["{{baseUrl}}"],
+              "path": ["posts", "{{postId}}", "vote"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Vote Post - Downvote",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has success true', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "});",
+                  "",
+                  "pm.test('Response contains stats data', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data).to.have.property('stats');",
+                  "    pm.expect(jsonData.data.stats).to.have.property('post_id');",
+                  "    pm.expect(jsonData.data.stats).to.have.property('score');",
+                  "    pm.expect(jsonData.data.stats).to.have.property('upvotes');",
+                  "    pm.expect(jsonData.data.stats).to.have.property('downvotes');",
+                  "    pm.expect(jsonData.data.stats).to.have.property('comment_count');",
+                  "    pm.expect(jsonData.data.stats).to.have.property('view_count');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "X-User-ID",
+                "value": "{{userId}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vote_type\": \"downvote\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/posts/{{postId}}/vote",
+              "host": ["{{baseUrl}}"],
+              "path": ["posts", "{{postId}}", "vote"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Vote Post - Remove Vote",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has success true', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "});",
+                  "",
+                  "pm.test('Response contains stats data', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data).to.have.property('stats');",
+                  "    pm.expect(jsonData.data.stats).to.have.property('post_id');",
+                  "    pm.expect(jsonData.data.stats).to.have.property('score');",
+                  "    pm.expect(jsonData.data.stats).to.have.property('upvotes');",
+                  "    pm.expect(jsonData.data.stats).to.have.property('downvotes');",
+                  "    pm.expect(jsonData.data.stats).to.have.property('comment_count');",
+                  "    pm.expect(jsonData.data.stats).to.have.property('view_count');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "X-User-ID",
+                "value": "{{userId}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vote_type\": \"remove\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/posts/{{postId}}/vote",
+              "host": ["{{baseUrl}}"],
+              "path": ["posts", "{{postId}}", "vote"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Vote Post - Invalid Vote Type",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test('Response has success false', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.false;",
+                  "});",
+                  "",
+                  "pm.test('Response contains error', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.error).to.have.property('code');",
+                  "    pm.expect(jsonData.error).to.have.property('message');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "X-User-ID",
+                "value": "{{userId}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vote_type\": \"invalid_vote\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/posts/{{postId}}/vote",
+              "host": ["{{baseUrl}}"],
+              "path": ["posts", "{{postId}}", "vote"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Post",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has success true', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "});",
+                  "",
+                  "pm.test('Response contains success message', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.message).to.include('deleted');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "X-User-ID",
+                "value": "{{userId}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/posts/{{postId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["posts", "{{postId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Post - Access Denied",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 403', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});",
+                  "",
+                  "pm.test('Response has success false', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.false;",
+                  "});",
+                  "",
+                  "pm.test('Response contains error', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.error).to.have.property('code');",
+                  "    pm.expect(jsonData.error).to.have.property('message');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "X-User-ID",
+                "value": "different_user_id",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/posts/{{postId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["posts", "{{postId}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
       "name": "Error Cases",
       "item": [
         {
@@ -749,6 +1603,330 @@
               "raw": "{{baseUrl}}/auth/register",
               "host": ["{{baseUrl}}"],
               "path": ["auth", "register"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Posts - Missing User ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test('Response has success false', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.false;",
+                  "});",
+                  "",
+                  "pm.test('Response contains error', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.error).to.have.property('code');",
+                  "    pm.expect(jsonData.error).to.have.property('message');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Test Post\",\n  \"content\": \"This is a test post\",\n  \"subreddit_id\": \"{{subredditId}}\",\n  \"post_type\": \"text\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/posts/create",
+              "host": ["{{baseUrl}}"],
+              "path": ["posts", "create"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Posts - Invalid Post Type",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test('Response has success false', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.false;",
+                  "});",
+                  "",
+                  "pm.test('Response contains error', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.error).to.have.property('code');",
+                  "    pm.expect(jsonData.error).to.have.property('message');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "X-User-ID",
+                "value": "{{userId}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Test Post\",\n  \"content\": \"This is a test post\",\n  \"subreddit_id\": \"{{subredditId}}\",\n  \"post_type\": \"invalid_type\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/posts/create",
+              "host": ["{{baseUrl}}"],
+              "path": ["posts", "create"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Posts - Invalid Sort Parameter",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test('Response has success false', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.false;",
+                  "});",
+                  "",
+                  "pm.test('Response contains error', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.error).to.have.property('code');",
+                  "    pm.expect(jsonData.error).to.have.property('message');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/posts?sort=invalid_sort",
+              "host": ["{{baseUrl}}"],
+              "path": ["posts"],
+              "query": [
+                {
+                  "key": "sort",
+                  "value": "invalid_sort"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Posts - Invalid Limit Parameter",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test('Response has success false', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.false;",
+                  "});",
+                  "",
+                  "pm.test('Response contains error', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.error).to.have.property('code');",
+                  "    pm.expect(jsonData.error).to.have.property('message');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/posts?limit=invalid_limit",
+              "host": ["{{baseUrl}}"],
+              "path": ["posts"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "invalid_limit"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Posts - Invalid Offset Parameter",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test('Response has success false', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.false;",
+                  "});",
+                  "",
+                  "pm.test('Response contains error', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.error).to.have.property('code');",
+                  "    pm.expect(jsonData.error).to.have.property('message');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/posts?offset=invalid_offset",
+              "host": ["{{baseUrl}}"],
+              "path": ["posts"],
+              "query": [
+                {
+                  "key": "offset",
+                  "value": "invalid_offset"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Posts - Invalid Is NSFW Parameter",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test('Response has success false', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.false;",
+                  "});",
+                  "",
+                  "pm.test('Response contains error', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.error).to.have.property('code');",
+                  "    pm.expect(jsonData.error).to.have.property('message');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/posts?is_nsfw=invalid_boolean",
+              "host": ["{{baseUrl}}"],
+              "path": ["posts"],
+              "query": [
+                {
+                  "key": "is_nsfw",
+                  "value": "invalid_boolean"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Posts - Invalid Is Spoiler Parameter",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test('Response has success false', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.false;",
+                  "});",
+                  "",
+                  "pm.test('Response contains error', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.error).to.have.property('code');",
+                  "    pm.expect(jsonData.error).to.have.property('message');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/posts?is_spoiler=invalid_boolean",
+              "host": ["{{baseUrl}}"],
+              "path": ["posts"],
+              "query": [
+                {
+                  "key": "is_spoiler",
+                  "value": "invalid_boolean"
+                }
+              ]
             }
           },
           "response": []

@@ -300,6 +300,412 @@ Reset password với confirmation code.
 
 ---
 
+## Posts Endpoints
+
+### 1. Create Post
+
+**POST** `/posts/create`
+
+Tạo post mới.
+
+#### Headers
+```
+Content-Type: application/json
+X-User-ID: user_1234567890_abcdef12  # For testing purposes
+```
+
+#### Request Body
+```json
+{
+  "title": "My First Post",
+  "content": "This is the content of my post",
+  "subreddit_id": "subreddit_123",
+  "post_type": "text",
+  "url": null,
+  "media_urls": null,
+  "is_nsfw": false,
+  "is_spoiler": false,
+  "flair": "Discussion",
+  "tags": ["programming", "tutorial"]
+}
+```
+
+#### Validation Rules
+- **title**: 1-300 characters, required
+- **content**: Max 40000 characters, required for text posts
+- **subreddit_id**: Valid subreddit ID, required
+- **post_type**: One of: "text", "link", "image", "video", "poll", default: "text"
+- **url**: Valid URL, required for link posts
+- **media_urls**: Array of URLs, for image/video posts
+- **is_nsfw**: Boolean, default: false
+- **is_spoiler**: Boolean, default: false
+- **flair**: Max 100 characters, optional
+- **tags**: Array of strings, optional
+
+#### Success Response (201)
+```json
+{
+  "success": true,
+  "message": "Post created successfully",
+  "data": {
+    "post": {
+      "post_id": "post_1757473451_1f984949",
+      "title": "My First Post",
+      "content": "This is the content of my post",
+      "author_id": "user_1234567890_abcdef12",
+      "author_username": "testuser123",
+      "subreddit_id": "subreddit_123",
+      "subreddit_name": "Test Subreddit",
+      "post_type": "text",
+      "url": null,
+      "media_urls": null,
+      "score": 0,
+      "upvotes": 0,
+      "downvotes": 0,
+      "comment_count": 0,
+      "view_count": 0,
+      "created_at": "2025-09-10T03:04:11.075189+00:00",
+      "updated_at": "2025-09-10T03:04:11.075189+00:00",
+      "is_deleted": false,
+      "is_locked": false,
+      "is_sticky": false,
+      "is_nsfw": false,
+      "is_spoiler": false,
+      "flair": "Discussion",
+      "tags": ["programming", "tutorial"],
+      "awards": null,
+      "user_vote": null
+    }
+  }
+}
+```
+
+#### Error Responses
+- `400` - Validation errors:
+  ```json
+  {
+    "success": false,
+    "message": "Validation error",
+    "error": {
+      "code": "POST_VALIDATION_ERROR",
+      "message": "Title is required for text posts"
+    }
+  }
+  ```
+- `403` - Access denied:
+  ```json
+  {
+    "success": false,
+    "message": "Access denied",
+    "error": {
+      "code": "POST_ACCESS_DENIED",
+      "message": "Author not found"
+    }
+  }
+  ```
+
+---
+
+### 2. Get Posts
+
+**GET** `/posts`
+
+Lấy danh sách posts với filtering và pagination.
+
+#### Query Parameters
+- **subreddit_id** (optional): Filter by subreddit
+- **author_id** (optional): Filter by author
+- **sort** (optional): Sort order - "hot", "new", "top", "rising", "controversial" (default: "hot")
+- **time_filter** (optional): Time filter for top/controversial - "hour", "day", "week", "month", "year", "all" (default: "day")
+- **limit** (optional): Number of posts (1-100, default: 25)
+- **offset** (optional): Pagination offset (default: 0)
+- **post_type** (optional): Filter by post type
+- **is_nsfw** (optional): Filter by NSFW status
+
+#### Example Request
+```
+GET /posts?subreddit_id=subreddit_123&sort=hot&limit=10&offset=0
+```
+
+#### Success Response (200)
+```json
+{
+  "success": true,
+  "message": "Posts retrieved successfully",
+  "data": {
+    "posts": [
+      {
+        "post_id": "post_1757473451_1f984949",
+        "title": "My First Post",
+        "content": "This is the content of my post",
+        "author_id": "user_1234567890_abcdef12",
+        "author_username": "testuser123",
+        "subreddit_id": "subreddit_123",
+        "subreddit_name": "Test Subreddit",
+        "post_type": "text",
+        "url": null,
+        "media_urls": [],
+        "score": 0,
+        "upvotes": 0,
+        "downvotes": 0,
+        "comment_count": 0,
+        "view_count": 0,
+        "created_at": "2025-09-10T03:04:11.075189+00:00",
+        "updated_at": "2025-09-10T03:04:11.075189+00:00",
+        "is_deleted": false,
+        "is_locked": false,
+        "is_sticky": false,
+        "is_nsfw": false,
+        "is_spoiler": false,
+        "flair": "Discussion",
+        "tags": ["programming", "tutorial"],
+        "awards": [],
+        "user_vote": null
+      }
+    ],
+    "total_count": 1,
+    "has_more": false,
+    "next_offset": null
+  }
+}
+```
+
+---
+
+### 3. Get Post by ID
+
+**GET** `/posts/{post_id}`
+
+Lấy chi tiết một post theo ID.
+
+#### Path Parameters
+- **post_id**: ID của post cần lấy
+
+#### Success Response (200)
+```json
+{
+  "success": true,
+  "message": "Post retrieved successfully",
+  "data": {
+    "post": {
+      "post_id": "post_1757473451_1f984949",
+      "title": "My First Post",
+      "content": "This is the content of my post",
+      "author_id": "user_1234567890_abcdef12",
+      "author_username": "testuser123",
+      "subreddit_id": "subreddit_123",
+      "subreddit_name": "Test Subreddit",
+      "post_type": "text",
+      "url": null,
+      "media_urls": [],
+      "score": 0,
+      "upvotes": 0,
+      "downvotes": 0,
+      "comment_count": 0,
+      "view_count": 0,
+      "created_at": "2025-09-10T03:04:11.075189+00:00",
+      "updated_at": "2025-09-10T03:04:11.075189+00:00",
+      "is_deleted": false,
+      "is_locked": false,
+      "is_sticky": false,
+      "is_nsfw": false,
+      "is_spoiler": false,
+      "flair": "Discussion",
+      "tags": ["programming", "tutorial"],
+      "awards": [],
+      "user_vote": null
+    }
+  }
+}
+```
+
+#### Error Responses
+- `404` - Post not found:
+  ```json
+  {
+    "success": false,
+    "message": "Post not found",
+    "error": {
+      "code": "POST_NOT_FOUND",
+      "message": "Post not found"
+    }
+  }
+  ```
+
+---
+
+### 4. Update Post
+
+**PUT** `/posts/{post_id}`
+
+Cập nhật post (chỉ author mới có thể cập nhật).
+
+#### Headers
+```
+Content-Type: application/json
+X-User-ID: user_1234567890_abcdef12  # Must be the post author
+```
+
+#### Path Parameters
+- **post_id**: ID của post cần cập nhật
+
+#### Request Body
+```json
+{
+  "title": "Updated Post Title",
+  "content": "Updated content",
+  "is_nsfw": false,
+  "is_spoiler": true,
+  "flair": "Updated Flair",
+  "tags": ["updated", "tags"]
+}
+```
+
+#### Success Response (200)
+```json
+{
+  "success": true,
+  "message": "Post updated successfully",
+  "data": {
+    "post": {
+      "post_id": "post_1757473451_1f984949",
+      "title": "Updated Post Title",
+      "content": "Updated content",
+      "author_id": "user_1234567890_abcdef12",
+      "author_username": "testuser123",
+      "subreddit_id": "subreddit_123",
+      "subreddit_name": "Test Subreddit",
+      "post_type": "text",
+      "url": null,
+      "media_urls": [],
+      "score": 0,
+      "upvotes": 0,
+      "downvotes": 0,
+      "comment_count": 0,
+      "view_count": 0,
+      "created_at": "2025-09-10T03:04:11.075189+00:00",
+      "updated_at": "2025-09-10T03:04:12.123456+00:00",
+      "is_deleted": false,
+      "is_locked": false,
+      "is_sticky": false,
+      "is_nsfw": false,
+      "is_spoiler": true,
+      "flair": "Updated Flair",
+      "tags": ["updated", "tags"],
+      "awards": [],
+      "user_vote": null
+    }
+  }
+}
+```
+
+#### Error Responses
+- `403` - Access denied:
+  ```json
+  {
+    "success": false,
+    "message": "Access denied",
+    "error": {
+      "code": "POST_ACCESS_DENIED",
+      "message": "Only the author can update this post"
+    }
+  }
+  ```
+
+---
+
+### 5. Delete Post
+
+**DELETE** `/posts/{post_id}`
+
+Xóa post (soft delete, chỉ author mới có thể xóa).
+
+#### Headers
+```
+X-User-ID: user_1234567890_abcdef12  # Must be the post author
+```
+
+#### Path Parameters
+- **post_id**: ID của post cần xóa
+
+#### Success Response (200)
+```json
+{
+  "success": true,
+  "message": "Post deleted successfully"
+}
+```
+
+#### Error Responses
+- `403` - Access denied:
+  ```json
+  {
+    "success": false,
+    "message": "Access denied",
+    "error": {
+      "code": "POST_ACCESS_DENIED",
+      "message": "Only the author can delete this post"
+    }
+  }
+  ```
+
+---
+
+### 6. Vote Post
+
+**POST** `/posts/{post_id}/vote`
+
+Vote cho post (upvote, downvote, hoặc remove vote).
+
+#### Headers
+```
+Content-Type: application/json
+X-User-ID: user_1234567890_abcdef12
+```
+
+#### Path Parameters
+- **post_id**: ID của post cần vote
+
+#### Request Body
+```json
+{
+  "vote_type": "upvote"  // "upvote", "downvote", or "remove"
+}
+```
+
+#### Success Response (200)
+```json
+{
+  "success": true,
+  "message": "Vote recorded successfully",
+  "data": {
+    "stats": {
+      "post_id": "post_1757473451_1f984949",
+      "score": 1,
+      "upvotes": 1,
+      "downvotes": 0,
+      "comment_count": 0,
+      "view_count": 0
+    }
+  }
+}
+```
+
+#### Error Responses
+- `400` - Invalid vote type:
+  ```json
+  {
+    "success": false,
+    "message": "Validation error",
+    "error": {
+      "code": "POST_VALIDATION_ERROR",
+      "message": "Invalid vote type"
+    }
+  }
+  ```
+
+---
+
 ## CORS Support
 
 API hỗ trợ CORS cho tất cả origins. Preflight OPTIONS requests được hỗ trợ:
@@ -324,6 +730,9 @@ Access-Control-Allow-Headers: Content-Type, Authorization
 | `UNAUTHORIZED` | Invalid or missing authentication |
 | `FORGOT_PASSWORD_ERROR` | Forgot password operation failed |
 | `RESET_PASSWORD_ERROR` | Password reset operation failed |
+| `POST_NOT_FOUND` | Post not found |
+| `POST_ACCESS_DENIED` | Access denied to post operation |
+| `POST_VALIDATION_ERROR` | Post validation failed |
 | `NOT_FOUND` | Endpoint not found |
 | `INTERNAL_ERROR` | Internal server error |
 
@@ -384,6 +793,15 @@ curl -X POST https://ugn2h0yxwf.execute-api.ap-southeast-1.amazonaws.com/prod/au
 ---
 
 ## Changelog
+
+### v2.0.0 (2025-09-10)
+- **Posts System**: Complete CRUD operations for posts
+- **Post Types**: Support for text, link, image, video, and poll posts
+- **Voting System**: Upvote, downvote, and remove vote functionality
+- **Filtering & Sorting**: Advanced filtering by subreddit, author, type, and NSFW status
+- **Pagination**: Support for limit/offset pagination
+- **Post Attributes**: Tags, flair, NSFW/Spoiler flags
+- **Database**: Added Posts and Subreddits DynamoDB tables with GSI indexes
 
 ### v1.0.0 (2025-09-08)
 - Initial API release
