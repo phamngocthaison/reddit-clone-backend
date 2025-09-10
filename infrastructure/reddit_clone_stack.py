@@ -26,6 +26,8 @@ class RedditCloneStack(cdk.Stack):
         self.subreddits_table = self._create_subreddits_table()
         self.comments_table = self._create_comments_table()
         self.subscriptions_table = self._create_subscriptions_table()
+        self.user_feeds_table = self._create_user_feeds_table()
+        self.user_follows_table = self._create_user_follows_table()
 
         # Cognito User Pool
         self.user_pool, self.user_pool_client = self._create_cognito_resources()
@@ -37,9 +39,10 @@ class RedditCloneStack(cdk.Stack):
         auth_lambda = self._create_auth_lambda(lambda_execution_role)
         comments_lambda = self._create_comments_lambda(lambda_execution_role)
         subreddits_lambda = self._create_subreddits_lambda(lambda_execution_role)
+        feeds_lambda = self._create_feeds_lambda(lambda_execution_role)
 
         # API Gateway
-        self.api = self._create_api_gateway(auth_lambda, comments_lambda, subreddits_lambda)
+        self.api = self._create_api_gateway(auth_lambda, comments_lambda, subreddits_lambda, feeds_lambda)
 
         # Outputs
         self._create_outputs()
@@ -261,6 +264,110 @@ class RedditCloneStack(cdk.Stack):
 
         return table
 
+    def _create_user_feeds_table(self) -> dynamodb.Table:
+        """Create DynamoDB table for user feeds."""
+        table = dynamodb.Table(
+            self,
+            "UserFeedsTable",
+            table_name="reddit-clone-user-feeds",
+            partition_key=dynamodb.Attribute(
+                name="feedId", type=dynamodb.AttributeType.STRING
+            ),
+            sort_key=dynamodb.Attribute(
+                name="createdAt", type=dynamodb.AttributeType.STRING
+            ),
+            billing_mode=dynamodb.BillingMode.PAY_PER_REQUEST,
+            removal_policy=cdk.RemovalPolicy.DESTROY,  # Use RETAIN for production
+            point_in_time_recovery=True,
+        )
+
+        # GSI for feeds by user (chronological)
+        table.add_global_secondary_index(
+            index_name="UserFeedIndex",
+            partition_key=dynamodb.Attribute(
+                name="userId", type=dynamodb.AttributeType.STRING
+            ),
+            sort_key=dynamodb.Attribute(
+                name="createdAt", type=dynamodb.AttributeType.STRING
+            ),
+        )
+
+        # GSI for feeds by user (by score)
+        table.add_global_secondary_index(
+            index_name="PostScoreIndex",
+            partition_key=dynamodb.Attribute(
+                name="userId", type=dynamodb.AttributeType.STRING
+            ),
+            sort_key=dynamodb.Attribute(
+                name="postScore", type=dynamodb.AttributeType.NUMBER
+            ),
+        )
+
+        # GSI for feeds by subreddit
+        table.add_global_secondary_index(
+            index_name="SubredditFeedIndex",
+            partition_key=dynamodb.Attribute(
+                name="subredditId", type=dynamodb.AttributeType.STRING
+            ),
+            sort_key=dynamodb.Attribute(
+                name="createdAt", type=dynamodb.AttributeType.STRING
+            ),
+        )
+
+        # GSI for feeds by author
+        table.add_global_secondary_index(
+            index_name="AuthorFeedIndex",
+            partition_key=dynamodb.Attribute(
+                name="authorId", type=dynamodb.AttributeType.STRING
+            ),
+            sort_key=dynamodb.Attribute(
+                name="createdAt", type=dynamodb.AttributeType.STRING
+            ),
+        )
+
+        return table
+
+    def _create_user_follows_table(self) -> dynamodb.Table:
+        """Create DynamoDB table for user follows."""
+        table = dynamodb.Table(
+            self,
+            "UserFollowsTable",
+            table_name="reddit-clone-user-follows",
+            partition_key=dynamodb.Attribute(
+                name="followId", type=dynamodb.AttributeType.STRING
+            ),
+            sort_key=dynamodb.Attribute(
+                name="createdAt", type=dynamodb.AttributeType.STRING
+            ),
+            billing_mode=dynamodb.BillingMode.PAY_PER_REQUEST,
+            removal_policy=cdk.RemovalPolicy.DESTROY,  # Use RETAIN for production
+            point_in_time_recovery=True,
+        )
+
+        # GSI for follows by follower
+        table.add_global_secondary_index(
+            index_name="FollowerIndex",
+            partition_key=dynamodb.Attribute(
+                name="followerId", type=dynamodb.AttributeType.STRING
+            ),
+            sort_key=dynamodb.Attribute(
+                name="createdAt", type=dynamodb.AttributeType.STRING
+            ),
+        )
+
+        # GSI for follows by following
+        table.add_global_secondary_index(
+            index_name="FollowingIndex",
+            partition_key=dynamodb.Attribute(
+                name="followingId", type=dynamodb.AttributeType.STRING
+            ),
+            sort_key=dynamodb.Attribute(
+                name="createdAt", type=dynamodb.AttributeType.STRING
+            ),
+        )
+
+        return table
+
     def _create_cognito_resources(self) -> tuple[cognito.UserPool, cognito.UserPoolClient]:
         """Create Cognito User Pool and Client."""
         user_pool = cognito.UserPool(
@@ -339,6 +446,10 @@ class RedditCloneStack(cdk.Stack):
                     f"{self.comments_table.table_arn}/index/*",
                     self.subscriptions_table.table_arn,
                     f"{self.subscriptions_table.table_arn}/index/*",
+                    self.user_feeds_table.table_arn,
+                    f"{self.user_feeds_table.table_arn}/index/*",
+                    self.user_follows_table.table_arn,
+                    f"{self.user_follows_table.table_arn}/index/*",
                 ],
             )
         )
@@ -450,7 +561,36 @@ class RedditCloneStack(cdk.Stack):
 
         return subreddits_lambda
 
-    def _create_api_gateway(self, auth_lambda: lambda_.Function, comments_lambda: lambda_.Function, subreddits_lambda: lambda_.Function) -> apigateway.RestApi:
+    def _create_feeds_lambda(self, execution_role: iam.Role) -> lambda_.Function:
+        """Create Lambda function for feeds."""
+        # Get the path to the Lambda code - use the deployment directory
+        lambda_code_path = Path(__file__).parent.parent / "lambda-deployment"
+
+        feeds_lambda = lambda_.Function(
+            self,
+            "FeedsLambda",
+            runtime=lambda_.Runtime.PYTHON_3_9,
+            handler="lambda_handler_feeds.handler",  # Use the feeds handler
+            code=lambda_.Code.from_asset(str(lambda_code_path)),
+            role=execution_role,
+            environment={
+                "USER_POOL_ID": self.user_pool.user_pool_id,
+                "CLIENT_ID": self.user_pool_client.user_pool_client_id,
+                "USERS_TABLE": self.users_table.table_name,
+                "POSTS_TABLE": self.posts_table.table_name,
+                "SUBREDDITS_TABLE": self.subreddits_table.table_name,
+                "COMMENTS_TABLE": self.comments_table.table_name,
+                "SUBSCRIPTIONS_TABLE": self.subscriptions_table.table_name,
+                "USER_FEEDS_TABLE": self.user_feeds_table.table_name,
+                "USER_FOLLOWS_TABLE": self.user_follows_table.table_name,
+                "REGION": self.region,
+            },
+            timeout=cdk.Duration.seconds(30),
+        )
+
+        return feeds_lambda
+
+    def _create_api_gateway(self, auth_lambda: lambda_.Function, comments_lambda: lambda_.Function, subreddits_lambda: lambda_.Function, feeds_lambda: lambda_.Function) -> apigateway.RestApi:
         """Create API Gateway with authentication endpoints."""
         api = apigateway.RestApi(
             self,
@@ -475,6 +615,7 @@ class RedditCloneStack(cdk.Stack):
         auth_integration = apigateway.LambdaIntegration(auth_lambda)
         comments_integration = apigateway.LambdaIntegration(comments_lambda)
         subreddits_integration = apigateway.LambdaIntegration(subreddits_lambda)
+        feeds_integration = apigateway.LambdaIntegration(feeds_lambda)
 
         # Auth endpoints - each endpoint needs its own resource path
         auth_resource = api.root.add_resource("auth")
@@ -582,6 +723,20 @@ class RedditCloneStack(cdk.Stack):
         subreddit_moderator_resource = subreddit_moderators_resource.add_resource("{user_id}")
         subreddit_moderator_resource.add_method("DELETE", subreddits_integration)
 
+        # Feeds endpoints - use feeds_lambda
+        feeds_resource = api.root.add_resource("feeds")
+        
+        # Get user feed endpoint
+        feeds_resource.add_method("GET", feeds_integration)
+        
+        # Refresh feed endpoint
+        feeds_refresh_resource = feeds_resource.add_resource("refresh")
+        feeds_refresh_resource.add_method("POST", feeds_integration)
+        
+        # Feed statistics endpoint
+        feeds_stats_resource = feeds_resource.add_resource("stats")
+        feeds_stats_resource.add_method("GET", feeds_integration)
+
         return api
 
     def _create_outputs(self) -> None:
@@ -640,4 +795,18 @@ class RedditCloneStack(cdk.Stack):
             "CommentsTableName",
             value=self.comments_table.table_name,
             description="DynamoDB Comments Table Name",
+        )
+
+        cdk.CfnOutput(
+            self,
+            "UserFeedsTableName",
+            value=self.user_feeds_table.table_name,
+            description="DynamoDB User Feeds Table Name",
+        )
+
+        cdk.CfnOutput(
+            self,
+            "UserFollowsTableName",
+            value=self.user_follows_table.table_name,
+            description="DynamoDB User Follows Table Name",
         )
