@@ -1,9 +1,9 @@
 {
   "info": {
     "name": "Reddit Clone Backend API",
-    "description": "Complete API collection for Reddit Clone Backend - Authentication, Posts & Comments System",
+    "description": "Complete API collection for Reddit Clone Backend - Separated Lambda Architecture (AuthLambda + CommentsLambda)",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-        "version": "2.1.0"
+        "version": "2.2.0"
   },
   "variable": [
     {
@@ -111,7 +111,8 @@
   ],
   "item": [
     {
-      "name": "Authentication",
+      "name": "Authentication (AuthLambda)",
+      "description": "Authentication endpoints handled by AuthLambda function",
       "item": [
         {
           "name": "CORS Preflight",
@@ -689,7 +690,8 @@
       ]
     },
     {
-      "name": "Posts",
+      "name": "Posts (AuthLambda)",
+      "description": "Posts endpoints handled by AuthLambda function",
       "item": [
         {
           "name": "Create Post - Text",
@@ -1533,7 +1535,8 @@
       ]
     },
     {
-      "name": "Comments",
+      "name": "Comments (CommentsLambda)",
+      "description": "Comments endpoints handled by separate CommentsLambda function",
       "item": [
         {
           "name": "Create Comment",

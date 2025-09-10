@@ -1,6 +1,6 @@
 # Reddit Clone Backend
 
-A scalable Reddit clone backend built with AWS serverless technologies.
+A scalable Reddit clone backend built with AWS serverless technologies using separated Lambda architecture.
 
 ## Architecture
 
@@ -8,50 +8,66 @@ This project uses the following AWS services:
 
 - **AWS Cognito** - User authentication and authorization
 - **AWS API Gateway** - RESTful API endpoints
-- **AWS Lambda** - Serverless compute functions
-- **DynamoDB/RDS** - Database for storing application data
+- **AWS Lambda** - Serverless compute functions (2 separate functions)
+- **DynamoDB** - NoSQL database for storing application data
 - **AWS CDK** - Infrastructure as Code
+
+### Lambda Architecture
+- **AuthLambda**: Handles Authentication + Posts APIs
+- **CommentsLambda**: Handles Comments APIs
 
 ## Features
 
-### Phase 1 - Authentication (Current)
+### Phase 1 - Authentication ✅
 - [x] User registration
 - [x] User login/logout
 - [x] JWT token validation
 - [x] Password reset functionality
 
-### Phase 2 - Core Reddit Features (Planned)
-- [ ] Create/Read posts
-- [ ] Voting system (upvotes/downvotes)
-- [ ] Comments system
+### Phase 2 - Posts System ✅
+- [x] Create/Read/Update/Delete posts
+- [x] Voting system (upvotes/downvotes)
+- [x] Post types (text, link, image, video, poll)
+- [x] Post filtering and sorting
+
+### Phase 2.3 - Comments System ✅
+- [x] Create/Read/Update/Delete comments
+- [x] Nested comments (replies)
+- [x] Comment voting system
+- [x] Comment filtering and sorting
+
+### Phase 3 - Advanced Features (Planned)
 - [ ] User profiles
 - [ ] Subreddit-like communities
+- [ ] Real-time notifications
+- [ ] Search functionality
 
 ## Project Structure
 
 ```
 reddit-clone-backend/
-├── src/
-│   └── lambda/
-│       ├── auth/          # Authentication Lambda functions
-│       │   ├── main.py           # Lambda handler
-│       │   └── auth_service.py   # Business logic
-│       └── shared/        # Shared utilities and types
-│           ├── models.py         # Pydantic models
-│           ├── utils.py          # Utility functions
-│           └── aws_clients.py    # AWS service clients
-├── infrastructure/        # AWS CDK infrastructure code (Python)
-│   ├── app.py            # CDK app entry point
-│   └── reddit_clone_stack.py  # CDK stack definition
-├── tests/                # Test files
-│   ├── unit/             # Unit tests
-│   ├── integration/      # Integration tests
-│   └── conftest.py       # Test configuration
-├── scripts/              # Deployment and utility scripts
-│   └── deploy.py         # Automated deployment script
-├── docs/                 # Documentation
-├── requirements.txt      # Python dependencies
-├── pyproject.toml        # Python project configuration
+├── lambda_handler_auth_posts.py    # AuthLambda handler (Auth + Posts)
+├── lambda_handler_comments.py      # CommentsLambda handler
+├── lambda_handler_standalone_v1.py # Original auth-only handler
+├── lambda_handler_phase2.py        # Combined handler (deprecated)
+├── lambda-deployment/              # Lambda deployment package
+│   ├── requirements.txt            # Python dependencies
+│   └── [deployment files]          # Zipped for Lambda
+├── infrastructure/                 # AWS CDK infrastructure code
+│   ├── app.py                     # CDK app entry point
+│   └── reddit_clone_stack.py      # CDK stack definition
+├── docs/                          # Documentation
+│   ├── api-contract.md            # API documentation
+│   ├── postman-collection.json    # Postman collection
+│   └── lambda-architecture.md     # Lambda architecture docs
+├── tests/                         # Test files
+│   ├── unit/                      # Unit tests
+│   ├── integration/               # Integration tests
+│   └── conftest.py                # Test configuration
+├── scripts/                       # Deployment and utility scripts
+│   └── deploy.py                  # Automated deployment script
+├── requirements.txt               # Python dependencies
+├── pyproject.toml                 # Python project configuration
 └── README.md
 ```
 

@@ -32,11 +32,12 @@ class RedditCloneStack(cdk.Stack):
         # Lambda execution role
         lambda_execution_role = self._create_lambda_execution_role()
 
-        # Lambda function for authentication
+        # Lambda functions
         auth_lambda = self._create_auth_lambda(lambda_execution_role)
+        comments_lambda = self._create_comments_lambda(lambda_execution_role)
 
         # API Gateway
-        self.api = self._create_api_gateway(auth_lambda)
+        self.api = self._create_api_gateway(auth_lambda, comments_lambda)
 
         # Outputs
         self._create_outputs()
@@ -325,7 +326,7 @@ class RedditCloneStack(cdk.Stack):
         return role
 
     def _create_auth_lambda(self, execution_role: iam.Role) -> lambda_.Function:
-        """Create Lambda function for authentication."""
+        """Create Lambda function for authentication and posts."""
         # Get the path to the Lambda code - use the deployment directory
         lambda_code_path = Path(__file__).parent.parent / "lambda-deployment"
 
@@ -333,7 +334,7 @@ class RedditCloneStack(cdk.Stack):
             self,
             "AuthLambda",
             runtime=lambda_.Runtime.PYTHON_3_9,
-            handler="lambda_handler_phase2.handler",  # Use the Phase 2 handler
+            handler="lambda_handler_auth_posts.handler",  # Use the auth+posts handler
             code=lambda_.Code.from_asset(str(lambda_code_path)),
             role=execution_role,
             environment={
@@ -350,7 +351,33 @@ class RedditCloneStack(cdk.Stack):
 
         return auth_lambda
 
-    def _create_api_gateway(self, auth_lambda: lambda_.Function) -> apigateway.RestApi:
+    def _create_comments_lambda(self, execution_role: iam.Role) -> lambda_.Function:
+        """Create Lambda function for comments."""
+        # Get the path to the Lambda code - use the deployment directory
+        lambda_code_path = Path(__file__).parent.parent / "lambda-deployment"
+
+        comments_lambda = lambda_.Function(
+            self,
+            "CommentsLambda",
+            runtime=lambda_.Runtime.PYTHON_3_9,
+            handler="lambda_handler_comments.handler",  # Use the comments handler
+            code=lambda_.Code.from_asset(str(lambda_code_path)),
+            role=execution_role,
+            environment={
+                "USER_POOL_ID": self.user_pool.user_pool_id,
+                "CLIENT_ID": self.user_pool_client.user_pool_client_id,
+                "USERS_TABLE": self.users_table.table_name,
+                "POSTS_TABLE": self.posts_table.table_name,
+                "SUBREDDITS_TABLE": self.subreddits_table.table_name,
+                "COMMENTS_TABLE": self.comments_table.table_name,
+                "REGION": self.region,
+            },
+            timeout=cdk.Duration.seconds(30),
+        )
+
+        return comments_lambda
+
+    def _create_api_gateway(self, auth_lambda: lambda_.Function, comments_lambda: lambda_.Function) -> apigateway.RestApi:
         """Create API Gateway with authentication endpoints."""
         api = apigateway.RestApi(
             self,
@@ -370,8 +397,9 @@ class RedditCloneStack(cdk.Stack):
             ),
         )
 
-        # API Gateway integration
+        # API Gateway integrations
         auth_integration = apigateway.LambdaIntegration(auth_lambda)
+        comments_integration = apigateway.LambdaIntegration(comments_lambda)
 
         # Auth endpoints - each endpoint needs its own resource path
         auth_resource = api.root.add_resource("auth")
@@ -416,25 +444,25 @@ class RedditCloneStack(cdk.Stack):
         vote_resource = post_resource.add_resource("vote")
         vote_resource.add_method("POST", auth_integration)
 
-        # Comments endpoints
+        # Comments endpoints - use comments_lambda
         comments_resource = api.root.add_resource("comments")
         
         # Create comment endpoint
         comments_create_resource = comments_resource.add_resource("create")
-        comments_create_resource.add_method("POST", auth_integration)
+        comments_create_resource.add_method("POST", comments_integration)
         
         # Get comments endpoint
-        comments_resource.add_method("GET", auth_integration)
+        comments_resource.add_method("GET", comments_integration)
         
         # Individual comment endpoints
         comment_resource = comments_resource.add_resource("{comment_id}")
-        comment_resource.add_method("GET", auth_integration)
-        comment_resource.add_method("PUT", auth_integration)
-        comment_resource.add_method("DELETE", auth_integration)
+        comment_resource.add_method("GET", comments_integration)
+        comment_resource.add_method("PUT", comments_integration)
+        comment_resource.add_method("DELETE", comments_integration)
         
         # Vote comment endpoint
         comment_vote_resource = comment_resource.add_resource("vote")
-        comment_vote_resource.add_method("POST", auth_integration)
+        comment_vote_resource.add_method("POST", comments_integration)
 
         return api
 

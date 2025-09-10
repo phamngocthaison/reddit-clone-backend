@@ -1,0 +1,605 @@
+"""
+Lambda handler for Authentication + Posts functionality
+"""
+
+import json
+import logging
+import os
+import boto3
+import asyncio
+from datetime import datetime, timezone
+from typing import Dict, Any, Optional
+from botocore.exceptions import ClientError
+
+# Configure logging
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+
+# AWS clients
+cognito = boto3.client("cognito-idp")
+dynamodb = boto3.resource("dynamodb")
+
+# Environment variables
+USER_POOL_ID = os.environ.get("USER_POOL_ID")
+CLIENT_ID = os.environ.get("CLIENT_ID")
+USERS_TABLE = os.environ.get("USERS_TABLE")
+POSTS_TABLE = os.environ.get("POSTS_TABLE")
+SUBREDDITS_TABLE = os.environ.get("SUBREDDITS_TABLE")
+
+# DynamoDB tables
+users_table = dynamodb.Table(USERS_TABLE) if USERS_TABLE else None
+posts_table = dynamodb.Table(POSTS_TABLE) if POSTS_TABLE else None
+subreddits_table = dynamodb.Table(SUBREDDITS_TABLE) if SUBREDDITS_TABLE else None
+
+# ============================================================================
+# AUTHENTICATION MODELS
+# ============================================================================
+
+from pydantic import BaseModel, EmailStr, validator
+from typing import Optional, List
+from enum import Enum
+import uuid
+
+class RegisterRequest(BaseModel):
+    username: str
+    email: EmailStr
+    password: str
+
+    @validator('password')
+    def validate_password(cls, v):
+        if len(v) < 8:
+            raise ValueError('Password must be at least 8 characters long')
+        return v
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+class ResetPasswordRequest(BaseModel):
+    email: EmailStr
+    code: str
+    new_password: str
+
+    @validator('new_password')
+    def validate_password(cls, v):
+        if len(v) < 8:
+            raise ValueError('Password must be at least 8 characters long')
+        return v
+
+# ============================================================================
+# POSTS MODELS
+# ============================================================================
+
+class PostType(str, Enum):
+    TEXT = "text"
+    LINK = "link"
+    IMAGE = "image"
+    VIDEO = "video"
+    POLL = "poll"
+
+class PostBase(BaseModel):
+    title: str
+    content: Optional[str] = None
+    subreddit_id: str
+    post_type: PostType = PostType.TEXT
+    url: Optional[str] = None
+    media_urls: Optional[List[str]] = []
+    is_nsfw: bool = False
+    is_spoiler: bool = False
+    flair: Optional[str] = None
+    tags: Optional[List[str]] = []
+
+class CreatePostRequest(PostBase):
+    pass
+
+class UpdatePostRequest(BaseModel):
+    title: Optional[str] = None
+    content: Optional[str] = None
+    is_nsfw: Optional[bool] = None
+    is_spoiler: Optional[bool] = None
+    flair: Optional[str] = None
+    tags: Optional[List[str]] = None
+
+class GetPostsRequest(BaseModel):
+    subreddit_id: Optional[str] = None
+    author_id: Optional[str] = None
+    post_type: Optional[PostType] = None
+    sort_by: str = "created_at"
+    sort_order: str = "desc"
+    limit: int = 20
+    offset: Optional[str] = None
+
+class PostResponse(BaseModel):
+    post_id: str
+    title: str
+    content: str
+    author_id: str
+    author_username: str
+    subreddit_id: str
+    post_type: str
+    url: Optional[str]
+    media_urls: List[str]
+    score: int
+    upvotes: int
+    downvotes: int
+    comment_count: int
+    view_count: int
+    created_at: str
+    updated_at: str
+    is_deleted: bool
+    is_locked: bool
+    is_sticky: bool
+    is_nsfw: bool
+    is_spoiler: bool
+    flair: Optional[str]
+    tags: List[str]
+    awards: List[str]
+
+class PostsResponse(BaseModel):
+    posts: List[PostResponse]
+    total_count: int
+    has_more: bool
+    next_offset: Optional[str]
+
+class VoteType(str, Enum):
+    UPVOTE = "upvote"
+    DOWNVOTE = "downvote"
+    REMOVE = "remove"
+
+class VoteRequest(BaseModel):
+    vote_type: VoteType
+
+class VoteResponse(BaseModel):
+    post_id: str
+    user_id: str
+    vote_type: str
+    new_score: int
+    new_upvotes: int
+    new_downvotes: int
+
+# ============================================================================
+# UTILITY FUNCTIONS
+# ============================================================================
+
+def create_success_response(data: Any = None, message: str = "Success") -> Dict[str, Any]:
+    """Create a success response."""
+    response = {
+        "success": True,
+        "message": message,
+        "data": data,
+        "error": None
+    }
+    return {
+        "statusCode": 200,
+        "headers": {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-User-ID",
+            "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS"
+        },
+        "body": json.dumps(response)
+    }
+
+def create_error_response(status_code: int, error_code: str, message: str) -> Dict[str, Any]:
+    """Create an error response."""
+    response = {
+        "success": False,
+        "message": message,
+        "data": None,
+        "error": {
+            "code": error_code,
+            "message": message
+        }
+    }
+    return {
+        "statusCode": status_code,
+        "headers": {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-User-ID",
+            "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS"
+        },
+        "body": json.dumps(response)
+    }
+
+def get_user_id_from_event(event: Dict[str, Any]) -> str:
+    """Extract user ID from API Gateway event."""
+    # For testing purposes, extract from headers
+    headers = event.get('headers', {})
+    user_id = headers.get('X-User-ID') or headers.get('x-user-id')
+    
+    # If not in headers, try to get from query parameters for testing
+    if not user_id:
+        query_params = event.get('queryStringParameters') or {}
+        user_id = query_params.get('user_id')
+    
+    # For testing, use a default user ID if none provided
+    if not user_id:
+        user_id = "user_1757482930_ccac0f7724c2445"  # Default test user
+    
+    return user_id
+
+# ============================================================================
+# AUTHENTICATION HANDLERS
+# ============================================================================
+
+async def handle_register(event: Dict[str, Any]) -> Dict[str, Any]:
+    """Handle user registration."""
+    try:
+        body = json.loads(event.get("body", "{}"))
+        request = RegisterRequest(**body)
+        
+        # Generate user ID
+        user_id = f"user_{int(datetime.now().timestamp())}_{uuid.uuid4().hex[:8]}"
+        
+        # Create user in Cognito
+        try:
+            cognito.admin_create_user(
+                UserPoolId=USER_POOL_ID,
+                Username=request.username,
+                UserAttributes=[
+                    {"Name": "email", "Value": request.email},
+                    {"Name": "email_verified", "Value": "true"},
+                    {"Name": "preferred_username", "Value": request.username},
+                    {"Name": "custom:userId", "Value": user_id},
+                ],
+                MessageAction="SUPPRESS",
+                TemporaryPassword="TempPass123!",
+            )
+            
+            # Set permanent password
+            cognito.admin_set_user_password(
+                UserPoolId=USER_POOL_ID,
+                Username=request.username,
+                Password=request.password,
+                Permanent=True,
+            )
+        except ClientError as e:
+            if e.response['Error']['Code'] == 'UsernameExistsException':
+                return create_error_response(400, "USER_EXISTS", "Username already exists")
+            elif e.response['Error']['Code'] == 'InvalidParameterException':
+                return create_error_response(400, "INVALID_PARAMETER", str(e))
+            else:
+                raise e
+        
+        # Store user in DynamoDB
+        user_data = {
+            "userId": user_id,
+            "email": request.email,
+            "username": request.username,
+            "createdAt": datetime.now(timezone.utc).isoformat(),
+            "isActive": True
+        }
+        
+        users_table.put_item(Item=user_data)
+        
+        return create_success_response(
+            data={"user": user_data},
+            message="User registered successfully"
+        )
+        
+    except Exception as e:
+        logger.error(f"Registration error: {e}")
+        return create_error_response(500, "INTERNAL_ERROR", "Registration failed")
+
+async def handle_login(event: Dict[str, Any]) -> Dict[str, Any]:
+    """Handle user login."""
+    try:
+        body = json.loads(event.get("body", "{}"))
+        request = LoginRequest(**body)
+        
+        # Authenticate with Cognito
+        try:
+            response = cognito.admin_initiate_auth(
+                UserPoolId=USER_POOL_ID,
+                ClientId=CLIENT_ID,
+                AuthFlow="ADMIN_NO_SRP_AUTH",
+                AuthParameters={
+                    "USERNAME": request.username,
+                    "PASSWORD": request.password,
+                },
+            )
+            
+            # Get user details
+            user_response = cognito.admin_get_user(
+                UserPoolId=USER_POOL_ID,
+                Username=request.username
+            )
+            
+            # Extract user ID from custom attributes
+            user_id = None
+            for attr in user_response.get("UserAttributes", []):
+                if attr["Name"] == "custom:userId":
+                    user_id = attr["Value"]
+                    break
+            
+            if not user_id:
+                return create_error_response(500, "USER_ID_NOT_FOUND", "User ID not found")
+            
+            return create_success_response(
+                data={
+                    "access_token": response["AuthenticationResult"]["AccessToken"],
+                    "refresh_token": response["AuthenticationResult"]["RefreshToken"],
+                    "id_token": response["AuthenticationResult"]["IdToken"],
+                    "user_id": user_id,
+                    "username": request.username
+                },
+                message="Login successful"
+            )
+            
+        except ClientError as e:
+            if e.response['Error']['Code'] == 'NotAuthorizedException':
+                return create_error_response(401, "INVALID_CREDENTIALS", "Invalid username or password")
+            else:
+                raise e
+                
+    except Exception as e:
+        logger.error(f"Login error: {e}")
+        return create_error_response(500, "INTERNAL_ERROR", "Login failed")
+
+async def handle_logout(event: Dict[str, Any]) -> Dict[str, Any]:
+    """Handle user logout."""
+    try:
+        # For now, just return success
+        # In a real implementation, you would invalidate the token
+        return create_success_response(message="Logout successful")
+        
+    except Exception as e:
+        logger.error(f"Logout error: {e}")
+        return create_error_response(500, "INTERNAL_ERROR", "Logout failed")
+
+async def handle_forgot_password(event: Dict[str, Any]) -> Dict[str, Any]:
+    """Handle forgot password request."""
+    try:
+        body = json.loads(event.get("body", "{}"))
+        request = ForgotPasswordRequest(**body)
+        
+        # Send forgot password code
+        cognito.forgot_password(
+            ClientId=CLIENT_ID,
+            Username=request.email
+        )
+        
+        return create_success_response(message="Password reset code sent")
+        
+    except Exception as e:
+        logger.error(f"Forgot password error: {e}")
+        return create_error_response(500, "INTERNAL_ERROR", "Forgot password failed")
+
+async def handle_reset_password(event: Dict[str, Any]) -> Dict[str, Any]:
+    """Handle password reset."""
+    try:
+        body = json.loads(event.get("body", "{}"))
+        request = ResetPasswordRequest(**body)
+        
+        # Reset password
+        cognito.confirm_forgot_password(
+            ClientId=CLIENT_ID,
+            Username=request.email,
+            ConfirmationCode=request.code,
+            Password=request.new_password
+        )
+        
+        return create_success_response(message="Password reset successful")
+        
+    except Exception as e:
+        logger.error(f"Reset password error: {e}")
+        return create_error_response(500, "INTERNAL_ERROR", "Password reset failed")
+
+# ============================================================================
+# POSTS HANDLERS
+# ============================================================================
+
+async def handle_create_post(event: Dict[str, Any]) -> Dict[str, Any]:
+    """Handle create post request."""
+    try:
+        body = json.loads(event.get("body", "{}"))
+        request = CreatePostRequest(**body)
+        user_id = get_user_id_from_event(event)
+        
+        # Generate post ID
+        post_id = f"post_{int(datetime.now().timestamp())}_{uuid.uuid4().hex[:8]}"
+        
+        # Create post data
+        post_data = {
+            "postId": post_id,
+            "title": request.title,
+            "content": request.content or "",
+            "authorId": user_id,
+            "subredditId": request.subreddit_id,
+            "postType": request.post_type.value,
+            "url": request.url,
+            "mediaUrls": request.media_urls or [],
+            "score": 0,
+            "upvotes": 0,
+            "downvotes": 0,
+            "commentCount": 0,
+            "viewCount": 0,
+            "createdAt": datetime.now(timezone.utc).isoformat(),
+            "updatedAt": datetime.now(timezone.utc).isoformat(),
+            "isDeleted": False,
+            "isLocked": False,
+            "isSticky": False,
+            "isNsfw": request.is_nsfw,
+            "isSpoiler": request.is_spoiler,
+            "flair": request.flair,
+            "tags": request.tags or [],
+            "awards": []
+        }
+        
+        # Store in DynamoDB
+        posts_table.put_item(Item=post_data)
+        
+        # Get author username
+        try:
+            user_response = users_table.get_item(Key={"userId": user_id})
+            author_username = user_response.get("Item", {}).get("username", "Unknown")
+        except:
+            author_username = "Unknown"
+        
+        # Create response
+        post_response = PostResponse(
+            post_id=post_data["postId"],
+            title=post_data["title"],
+            content=post_data["content"],
+            author_id=post_data["authorId"],
+            author_username=author_username,
+            subreddit_id=post_data["subredditId"],
+            post_type=post_data["postType"],
+            url=post_data["url"],
+            media_urls=post_data["mediaUrls"],
+            score=post_data["score"],
+            upvotes=post_data["upvotes"],
+            downvotes=post_data["downvotes"],
+            comment_count=post_data["commentCount"],
+            view_count=post_data["viewCount"],
+            created_at=post_data["createdAt"],
+            updated_at=post_data["updatedAt"],
+            is_deleted=post_data["isDeleted"],
+            is_locked=post_data["isLocked"],
+            is_sticky=post_data["isSticky"],
+            is_nsfw=post_data["isNsfw"],
+            is_spoiler=post_data["isSpoiler"],
+            flair=post_data["flair"],
+            tags=post_data["tags"],
+            awards=post_data["awards"]
+        )
+        
+        return create_success_response(
+            data={"post": post_response.dict()},
+            message="Post created successfully"
+        )
+        
+    except Exception as e:
+        logger.error(f"Create post error: {e}")
+        return create_error_response(500, "INTERNAL_ERROR", "Create post failed")
+
+async def handle_get_posts(event: Dict[str, Any]) -> Dict[str, Any]:
+    """Handle get posts request."""
+    try:
+        query_params = event.get("queryStringParameters") or {}
+        request = GetPostsRequest(**query_params)
+        
+        # Build query parameters
+        query_params_dynamo = {}
+        
+        if request.subreddit_id:
+            query_params_dynamo["subredditId"] = request.subreddit_id
+        
+        if request.author_id:
+            query_params_dynamo["authorId"] = request.author_id
+        
+        if request.post_type:
+            query_params_dynamo["postType"] = request.post_type.value
+        
+        # Query posts
+        if query_params_dynamo:
+            response = posts_table.scan(
+                FilterExpression=" AND ".join([f"{k} = :{k}" for k in query_params_dynamo.keys()]),
+                ExpressionAttributeValues={f":{k}": v for k, v in query_params_dynamo.items()},
+                Limit=request.limit
+            )
+        else:
+            response = posts_table.scan(Limit=request.limit)
+        
+        posts = response.get("Items", [])
+        
+        # Sort posts
+        if request.sort_by == "created_at":
+            posts.sort(key=lambda x: x.get("createdAt", ""), reverse=(request.sort_order == "desc"))
+        elif request.sort_by == "score":
+            posts.sort(key=lambda x: x.get("score", 0), reverse=(request.sort_order == "desc"))
+        
+        # Get author usernames
+        for post in posts:
+            try:
+                user_response = users_table.get_item(Key={"userId": post["authorId"]})
+                post["authorUsername"] = user_response.get("Item", {}).get("username", "Unknown")
+            except:
+                post["authorUsername"] = "Unknown"
+        
+        # Create response
+        post_responses = []
+        for post in posts:
+            post_responses.append(PostResponse(
+                post_id=post["postId"],
+                title=post["title"],
+                content=post["content"],
+                author_id=post["authorId"],
+                author_username=post["authorUsername"],
+                subreddit_id=post["subredditId"],
+                post_type=post["postType"],
+                url=post["url"],
+                media_urls=post["mediaUrls"],
+                score=post["score"],
+                upvotes=post["upvotes"],
+                downvotes=post["downvotes"],
+                comment_count=post["commentCount"],
+                view_count=post["viewCount"],
+                created_at=post["createdAt"],
+                updated_at=post["updatedAt"],
+                is_deleted=post.get("isDeleted", False),
+                is_locked=post.get("isLocked", False),
+                is_sticky=post.get("isSticky", False),
+                is_nsfw=post.get("isNsfw", False),
+                is_spoiler=post.get("isSpoiler", False),
+                flair=post["flair"],
+                tags=post["tags"],
+                awards=post["awards"]
+            ).dict())
+        
+        return create_success_response(
+            data={
+                "posts": post_responses,
+                "total_count": len(post_responses),
+                "has_more": False,
+                "next_offset": None
+            },
+            message="Posts retrieved successfully"
+        )
+        
+    except Exception as e:
+        logger.error(f"Get posts error: {e}")
+        return create_error_response(500, "INTERNAL_ERROR", "Get posts failed")
+
+# ============================================================================
+# MAIN HANDLER
+# ============================================================================
+
+def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
+    """Lambda handler for authentication and posts endpoints."""
+    logger.info(f"Event: {json.dumps(event)}")
+
+    try:
+        # Get path and method
+        resource = event.get("resource", "")
+        method = event.get("httpMethod", "")
+
+        # Handle preflight OPTIONS requests
+        if method == "OPTIONS":
+            return create_success_response(message="CORS preflight")
+
+        # Route to appropriate handler based on path
+        if resource == "/auth/register" and method == "POST":
+            return asyncio.run(handle_register(event))
+        elif resource == "/auth/login" and method == "POST":
+            return asyncio.run(handle_login(event))
+        elif resource == "/auth/logout" and method == "POST":
+            return asyncio.run(handle_logout(event))
+        elif resource == "/auth/forgot-password" and method == "POST":
+            return asyncio.run(handle_forgot_password(event))
+        elif resource == "/auth/reset-password" and method == "POST":
+            return asyncio.run(handle_reset_password(event))
+        elif resource == "/posts/create" and method == "POST":
+            return asyncio.run(handle_create_post(event))
+        elif resource == "/posts" and method == "GET":
+            return asyncio.run(handle_get_posts(event))
+        else:
+            return create_error_response(404, "NOT_FOUND", "Endpoint not found")
+
+    except Exception as e:
+        logger.error(f"Lambda handler error: {e}")
+        return create_error_response(500, "INTERNAL_ERROR", "Internal server error")

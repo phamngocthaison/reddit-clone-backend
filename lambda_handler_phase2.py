@@ -21,6 +21,31 @@ logger.setLevel(logging.INFO)
 
 # Force rebuild - Phase 2.3 with Posts and Comments functionality
 
+# Import Comment handlers
+try:
+    from comment_handler import (
+        create_comment_handler,
+        get_comments_handler,
+        get_comment_by_id_handler,
+        update_comment_handler,
+        delete_comment_handler,
+        vote_comment_handler
+    )
+except ImportError:
+    # Fallback - define simple handlers
+    def create_comment_handler(event):
+        return {"statusCode": 501, "body": "Comment handler not available"}
+    def get_comments_handler(event):
+        return {"statusCode": 501, "body": "Comment handler not available"}
+    def get_comment_by_id_handler(event):
+        return {"statusCode": 501, "body": "Comment handler not available"}
+    def update_comment_handler(event):
+        return {"statusCode": 501, "body": "Comment handler not available"}
+    def delete_comment_handler(event):
+        return {"statusCode": 501, "body": "Comment handler not available"}
+    def vote_comment_handler(event):
+        return {"statusCode": 501, "body": "Comment handler not available"}
+
 # ============================================================================
 # MODELS
 # ============================================================================
@@ -868,6 +893,24 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             return asyncio.run(handle_get_post(event))
         elif resource == '/posts' and method == 'GET':
             return asyncio.run(handle_get_posts(event))
+        elif resource == '/posts/{post_id}' and method == 'PUT':
+            return asyncio.run(handle_update_post(event))
+        elif resource == '/posts/{post_id}' and method == 'DELETE':
+            return asyncio.run(handle_delete_post(event))
+        elif resource == '/posts/{post_id}/vote' and method == 'POST':
+            return asyncio.run(handle_vote_post(event))
+        elif resource == '/comments/create' and method == 'POST':
+            return create_comment_handler(event)
+        elif resource == '/comments' and method == 'GET':
+            return get_comments_handler(event)
+        elif resource == '/comments/{comment_id}' and method == 'GET':
+            return get_comment_by_id_handler(event)
+        elif resource == '/comments/{comment_id}' and method == 'PUT':
+            return update_comment_handler(event)
+        elif resource == '/comments/{comment_id}' and method == 'DELETE':
+            return delete_comment_handler(event)
+        elif resource == '/comments/{comment_id}/vote' and method == 'POST':
+            return vote_comment_handler(event)
         else:
             return create_response(404, {
                 "success": False,

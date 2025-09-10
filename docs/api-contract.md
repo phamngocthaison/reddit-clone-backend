@@ -6,10 +6,20 @@ Production: https://ugn2h0yxwf.execute-api.ap-southeast-1.amazonaws.com/prod
 Local Development: http://localhost:5000
 ```
 
+## Architecture Overview
+API được chia thành 2 Lambda functions riêng biệt:
+- **AuthLambda**: Xử lý Authentication và Posts APIs
+- **CommentsLambda**: Xử lý Comments APIs
+
 ## Authentication
 API sử dụng JWT tokens cho authentication. Tất cả protected endpoints yêu cầu `Authorization` header:
 ```
 Authorization: Bearer <access_token>
+```
+
+**Note**: Hiện tại API sử dụng `X-User-ID` header cho testing purposes:
+```
+X-User-ID: user_1757485758_cde044d0
 ```
 
 ## Common Response Format
@@ -301,6 +311,7 @@ Reset password với confirmation code.
 ---
 
 ## Posts Endpoints
+*Handled by AuthLambda*
 
 ### 1. Create Post
 
@@ -722,6 +733,7 @@ Access-Control-Allow-Headers: Content-Type, Authorization
 ---
 
 ## Comments Endpoints
+*Handled by CommentsLambda*
 
 ### 1. Create Comment
 
