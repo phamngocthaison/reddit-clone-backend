@@ -451,7 +451,7 @@ class RedditCloneStack(cdk.Stack):
         comments_create_resource = comments_resource.add_resource("create")
         comments_create_resource.add_method("POST", comments_integration)
         
-        # Get comments endpoint
+        # Get comments endpoint (all comments)
         comments_resource.add_method("GET", comments_integration)
         
         # Individual comment endpoints
@@ -463,6 +463,10 @@ class RedditCloneStack(cdk.Stack):
         # Vote comment endpoint
         comment_vote_resource = comment_resource.add_resource("vote")
         comment_vote_resource.add_method("POST", comments_integration)
+        
+        # Get comments by post_id endpoint (separate path)
+        comments_by_post_resource = post_resource.add_resource("comments")
+        comments_by_post_resource.add_method("GET", comments_integration)
 
         return api
 

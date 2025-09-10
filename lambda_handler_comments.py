@@ -132,6 +132,7 @@ class CommentType(str, Enum):
     IMAGE = "image"
     VIDEO = "video"
     LINK = "link"
+    COMMENT = "comment"
 
 class CommentBase(BaseModel):
     content: str
@@ -362,25 +363,53 @@ async def handle_get_comments(event: Dict[str, Any]) -> Dict[str, Any]:
             filter_expressions.append("parentCommentId = :parent_comment_id")
             expression_values[":parent_comment_id"] = request.parent_comment_id
         elif request.post_id:  # Only get top-level comments if post_id is specified
-            filter_expressions.append("attribute_not_exists(parentCommentId)")
+            filter_expressions.append("(attribute_not_exists(parentCommentId) OR parentCommentId = :null_value)")
+            expression_values[":null_value"] = None
         
         if request.author_id:
             filter_expressions.append("authorId = :author_id")
             expression_values[":author_id"] = request.author_id
         
-        # Add filter for non-deleted comments
-        filter_expressions.append("isDeleted = :is_deleted")
+        # Add filter for non-deleted comments (handle missing field as not deleted)
+        filter_expressions.append("(attribute_not_exists(isDeleted) OR isDeleted = :is_deleted)")
         expression_values[":is_deleted"] = False
         
-        # Query comments
-        if filter_expressions:
-            response = comments_table.scan(
-                FilterExpression=" AND ".join(filter_expressions),
-                ExpressionAttributeValues=expression_values,
-                Limit=request.limit
-            )
+        # Query comments - use GSI if filtering by post_id, otherwise scan
+        if request.post_id:
+            # Use GSI for post_id filtering
+            query_params_ddb = {
+                "IndexName": "PostIndex",
+                "KeyConditionExpression": "postId = :post_id",
+                "ExpressionAttributeValues": {":post_id": request.post_id},
+                "Limit": request.limit
+            }
+            
+            # Add additional filters
+            additional_filters = []
+            for key, value in expression_values.items():
+                if key != ":post_id":
+                    if key == ":null_value":
+                        additional_filters.append("(attribute_not_exists(parentCommentId) OR parentCommentId = :null_value)")
+                    elif key == ":is_deleted":
+                        additional_filters.append("(attribute_not_exists(isDeleted) OR isDeleted = :is_deleted)")
+                    else:
+                        additional_filters.append(f"{key.replace(':', '')} = {key}")
+            
+            if additional_filters:
+                query_params_ddb["FilterExpression"] = " AND ".join(additional_filters)
+                query_params_ddb["ExpressionAttributeValues"] = expression_values
+            
+            response = comments_table.query(**query_params_ddb)
         else:
-            response = comments_table.scan(Limit=request.limit)
+            # Use scan for other filters
+            if filter_expressions:
+                response = comments_table.scan(
+                    FilterExpression=" AND ".join(filter_expressions),
+                    ExpressionAttributeValues=expression_values,
+                    Limit=request.limit
+                )
+            else:
+                response = comments_table.scan(Limit=request.limit)
         
         comments = response.get("Items", [])
         
@@ -438,6 +467,119 @@ async def handle_get_comments(event: Dict[str, Any]) -> Dict[str, Any]:
     except Exception as e:
         logger.error(f"Get comments error: {e}")
         return create_error_response(500, "INTERNAL_ERROR", "Get comments failed")
+
+async def handle_get_comments_by_post(event: Dict[str, Any]) -> Dict[str, Any]:
+    """Get comments by post_id."""
+    try:
+        # Get post_id from path parameters
+        path_params = event.get("pathParameters") or {}
+        post_id = path_params.get("post_id")
+        
+        if not post_id:
+            return create_error_response(400, "INVALID_PARAMETER", "post_id is required")
+
+        # Parse query parameters
+        query_params = event.get("queryStringParameters", {}) or {}
+        request = GetCommentsRequest(**query_params)
+        
+        # Override post_id from path
+        request.post_id = post_id
+        
+        # Use GSI to query comments by post_id
+        query_params_ddb = {
+            "IndexName": "PostIndex",
+            "KeyConditionExpression": "postId = :post_id",
+            "ExpressionAttributeValues": {
+                ":post_id": post_id
+            },
+            "Limit": request.limit
+        }
+        
+        # Add additional filters
+        filter_expressions = []
+        expression_values = {":post_id": post_id}
+        
+        if request.parent_comment_id:
+            filter_expressions.append("parentCommentId = :parent_comment_id")
+            expression_values[":parent_comment_id"] = request.parent_comment_id
+        else:  # Only get top-level comments by default
+            filter_expressions.append("(attribute_not_exists(parentCommentId) OR parentCommentId = :null_value)")
+            expression_values[":null_value"] = None
+        
+        if request.author_id:
+            filter_expressions.append("authorId = :author_id")
+            expression_values[":author_id"] = request.author_id
+        
+        # Add filter for non-deleted comments (handle missing field as not deleted)
+        filter_expressions.append("(attribute_not_exists(isDeleted) OR isDeleted = :is_deleted)")
+        expression_values[":is_deleted"] = False
+        
+        if filter_expressions:
+            query_params_ddb["FilterExpression"] = " AND ".join(filter_expressions)
+            query_params_ddb["ExpressionAttributeValues"] = expression_values
+        
+        # Query comments using GSI
+        response = comments_table.query(**query_params_ddb)
+        
+        comments = response.get("Items", [])
+        
+        # Sort comments
+        if request.sort_by == "created_at":
+            comments.sort(key=lambda x: x.get("createdAt", ""), reverse=(request.sort_order == "desc"))
+        elif request.sort_by == "score":
+            comments.sort(key=lambda x: x.get("score", 0), reverse=(request.sort_order == "desc"))
+        
+        # Get author usernames
+        for comment in comments:
+            try:
+                user_response = users_table.get_item(Key={"userId": comment["authorId"]})
+                if "Item" in user_response:
+                    comment["authorUsername"] = user_response["Item"].get("username", "Unknown")
+                else:
+                    comment["authorUsername"] = "Unknown"
+            except Exception as e:
+                logger.warning(f"Failed to get username for user {comment['authorId']}: {e}")
+                comment["authorUsername"] = "Unknown"
+        
+        # Convert to response format
+        comment_responses = []
+        for comment in comments:
+            comment_responses.append(CommentResponse(
+                comment_id=comment["commentId"],
+                content=comment["content"],
+                author_id=comment["authorId"],
+                author_username=comment.get("authorUsername", "Unknown"),
+                post_id=comment["postId"],
+                parent_comment_id=comment.get("parentCommentId"),
+                comment_type=comment["commentType"],
+                media_urls=comment.get("mediaUrls", []),
+                score=int(comment.get("score", 0)),
+                upvotes=int(comment.get("upvotes", 0)),
+                downvotes=int(comment.get("downvotes", 0)),
+                reply_count=int(comment.get("replyCount", 0)),
+                created_at=comment["createdAt"],
+                updated_at=comment["updatedAt"],
+                is_deleted=comment.get("isDeleted", False),
+                is_edited=comment.get("isEdited", False),
+                is_nsfw=comment.get("isNsfw", False),
+                is_spoiler=comment.get("isSpoiler", False),
+                flair=comment.get("flair"),
+                tags=comment.get("tags", []),
+                awards=comment.get("awards", []),
+            ).dict())
+        
+        return create_success_response(
+            data={
+                "comments": comment_responses,
+                "count": len(comment_responses),
+                "post_id": post_id
+            },
+            message="Comments retrieved successfully"
+        )
+        
+    except Exception as e:
+        logger.error(f"Get comments by post error: {e}")
+        return create_error_response(500, "INTERNAL_ERROR", "Get comments by post failed")
 
 async def handle_get_comment_by_id(event: Dict[str, Any]) -> Dict[str, Any]:
     """Handle getting a comment by ID."""
@@ -776,6 +918,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             return asyncio.run(handle_create_comment(event))
         elif resource == "/comments" and method == "GET":
             return asyncio.run(handle_get_comments(event))
+        elif resource == "/posts/{post_id}/comments" and method == "GET":
+            return asyncio.run(handle_get_comments_by_post(event))
         elif resource == "/comments/{comment_id}" and method == "GET":
             return asyncio.run(handle_get_comment_by_id(event))
         elif resource == "/comments/{comment_id}" and method == "PUT":
@@ -785,6 +929,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         elif resource == "/comments/{comment_id}/vote" and method == "POST":
             return asyncio.run(handle_vote_comment(event))
         else:
+            logger.warning(f"Unhandled resource: {resource}, method: {method}")
             return create_error_response(404, "NOT_FOUND", "Endpoint not found")
 
     except Exception as e:
