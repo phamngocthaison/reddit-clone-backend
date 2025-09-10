@@ -7,10 +7,11 @@ Local Development: http://localhost:5000
 ```
 
 ## Architecture Overview
-API được chia thành 3 Lambda functions riêng biệt:
+API được chia thành 4 Lambda functions riêng biệt:
 - **AuthLambda**: Xử lý Authentication và Posts APIs
 - **CommentsLambda**: Xử lý Comments APIs
 - **SubredditsLambda**: Xử lý Subreddit APIs
+- **FeedsLambda**: Xử lý News Feed APIs
 
 ## Authentication
 API sử dụng JWT tokens cho authentication. Tất cả protected endpoints yêu cầu `Authorization` header:
@@ -1746,4 +1747,142 @@ X-User-ID: <user_id>
 - `ALREADY_SUBSCRIBED`: User đã tham gia subreddit
 - `NOT_SUBSCRIBED`: User chưa tham gia subreddit
 - `OWNER_CANNOT_LEAVE`: Owner không thể rời khỏi subreddit của mình
+
+---
+
+## News Feed APIs
+
+### GET /feeds
+Lấy personalized news feed cho user.
+
+**Headers:**
+- `Authorization: Bearer <access_token>`
+- `X-User-ID: <user_id>`
+
+**Query Parameters:**
+- `limit` (optional): Số lượng items trả về (default: 20, max: 100)
+- `offset` (optional): Offset cho pagination (default: 0)
+- `sort` (optional): Loại sắp xếp - `new`, `hot`, `top`, `trending` (default: `new`)
+- `includeNSFW` (optional): Bao gồm nội dung NSFW (default: false)
+- `includeSpoilers` (optional): Bao gồm nội dung spoiler (default: false)
+- `subredditId` (optional): Lọc theo subreddit ID
+- `authorId` (optional): Lọc theo author ID
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "feeds": [
+      {
+        "feedId": "feed_user123_2025-09-10T10:30:00Z_post456",
+        "postId": "post456",
+        "subredditId": "subreddit789",
+        "authorId": "user456",
+        "postTitle": "Amazing post title",
+        "postContent": "Post content preview...",
+        "postImageUrl": "https://example.com/image.jpg",
+        "subredditName": "r/programming",
+        "authorName": "john_doe",
+        "upvotes": 150,
+        "downvotes": 5,
+        "commentsCount": 23,
+        "isPinned": false,
+        "isNSFW": false,
+        "isSpoiler": false,
+        "tags": ["programming", "javascript"],
+        "createdAt": "2025-09-10T10:30:00Z",
+        "postScore": 145
+      }
+    ],
+    "pagination": {
+      "limit": 20,
+      "offset": 0,
+      "total": 150,
+      "hasMore": true,
+      "nextOffset": 20
+    },
+    "metadata": {
+      "generatedAt": "2025-09-10T10:35:00Z",
+      "sortType": "new",
+      "cacheHit": false
+    }
+  },
+  "message": "Feed retrieved successfully"
+}
+```
+
+### POST /feeds/refresh
+Refresh user feed sau khi có thay đổi.
+
+**Headers:**
+- `Authorization: Bearer <access_token>`
+- `X-User-ID: <user_id>`
+
+**Request Body:**
+```json
+{
+  "reason": "subreddit_joined",
+  "subredditId": "subreddit789",
+  "userId": "user456"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "message": "Feed refreshed successfully",
+    "newItemsCount": 15,
+    "refreshedAt": "2025-09-10T10:35:00Z"
+  },
+  "message": "Feed refreshed successfully"
+}
+```
+
+### GET /feeds/stats
+Lấy thống kê feed của user.
+
+**Headers:**
+- `Authorization: Bearer <access_token>`
+- `X-User-ID: <user_id>`
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "totalSubscriptions": 25,
+    "totalFollowing": 150,
+    "feedItemsCount": 1250,
+    "lastRefreshAt": "2025-09-10T10:30:00Z",
+    "averageScore": 85.5,
+    "topSubreddits": [
+      {
+        "subredditId": "subreddit789",
+        "subredditName": "r/programming",
+        "postCount": 45,
+        "averageScore": 92.3
+      }
+    ],
+    "topAuthors": [
+      {
+        "authorId": "user456",
+        "authorName": "john_doe",
+        "postCount": 12,
+        "averageScore": 88.7
+      }
+    ]
+  },
+  "message": "Feed statistics retrieved successfully"
+}
+```
+
+### Feed-specific Error Codes
+- `FEED_GENERATION_FAILED`: Lỗi khi tạo feed
+- `INVALID_SORT_TYPE`: Loại sắp xếp không hợp lệ
+- `INVALID_FILTER_PARAMS`: Tham số lọc không hợp lệ
+- `FEED_REFRESH_FAILED`: Lỗi khi refresh feed
+- `STATS_RETRIEVAL_FAILED`: Lỗi khi lấy thống kê
 - `CANNOT_JOIN_PRIVATE`: Không thể tham gia subreddit private mà không có lời mời

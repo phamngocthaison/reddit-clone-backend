@@ -45,7 +45,14 @@ Authorization: Bearer <access_token>
 - Join/Leave subreddit functionality
 - Moderator management
 
-### 5. [OpenAPI Specification](./openapi-spec.yaml)
+### 5. [News Feed APIs Collection](./Reddit_Clone_News_Feed_APIs.postman_collection.json)
+- Collection riêng cho News Feed APIs
+- Test cases cho feed generation và refresh
+- Sorting algorithms testing (new, hot, top, trending)
+- Feed statistics và analytics
+- Error handling scenarios
+
+### 6. [OpenAPI Specification](./openapi-spec.yaml)
 - Swagger/OpenAPI 3.0 spec
 - Interactive API documentation
 - Import vào Postman, Insomnia, etc.
@@ -226,6 +233,17 @@ curl https://ugn2h0yxwf.execute-api.ap-southeast-1.amazonaws.com/prod/health
 - Discord: Reddit Clone Community
 
 ## 📝 Changelog
+
+### v1.2.0 (2025-09-10)
+- ✅ News Feed System implementation (Phase 1)
+- ✅ Personalized feed generation from subscribed subreddits
+- ✅ Multiple sorting algorithms (new, hot, top, trending)
+- ✅ Feed pagination and filtering (NSFW, spoilers, subreddit, author)
+- ✅ Feed refresh functionality
+- ✅ Feed statistics and analytics
+- ✅ Separate FeedsLambda for better performance
+- ✅ News Feed-specific Postman collection
+- ✅ Comprehensive technical documentation
 
 ### v1.1.0 (2025-09-10)
 - ✅ Subreddit System implementation

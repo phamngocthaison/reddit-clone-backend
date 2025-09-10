@@ -1,0 +1,803 @@
+{
+  "info": {
+    "name": "Reddit Clone - News Feed APIs",
+    "description": "Collection for News Feed System APIs including feed generation, refresh, and statistics",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "1.0.0"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://ugn2h0yxwf.execute-api.ap-southeast-1.amazonaws.com/prod",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "f9ba158c-b051-603e-da3e-5d3ed8522bb5",
+      "type": "string"
+    },
+    {
+      "key": "authToken",
+      "value": "eyJraWQiOiJwTDliQlM4K2dKVU5OXC9aK3VObGVmcm9VWkdDNFJhNmV5alwvcnN6T3IydW89IiwiYWxnIjoiUlMyNTYifQ.eyJzdWIiOiJmOWJhMTU4Yy1iMDUxLTYwM2UtZGEzZS01ZDNlZDg1MjJiYjUiLCJpc3MiOiJodHRwczpcL1wvY29nbml0by1pZHAuYXAtc291dGhlYXN0LTEuYW1hem9uYXdzLmNvbVwvYXAtc291dGhlYXN0LTFfdGN3SUpTVUZTIiwiY2xpZW50X2lkIjoiMWV0Nm81cWR2ZmdjcmoxOHFxYmdsa3BrbTEiLCJvcmlnaW5fanRpIjoiZmU3MGE0NWUtYTI1ZC00ODlmLWI2NzgtYWJmMDM1ZmRmMzA1IiwiZXZlbnRfaWQiOiI5NGM1OTU3OS0xZjNkLTQzYzktYTBmMi0wNjU3NmE3ZDY0YTAiLCJ0b2tlbl91c2UiOiJhY2Nlc3MiLCJzY29wZSI6ImF3cy5jb2duaXRvLnNpZ25pbi51c2VyLmFkbWluIiwiYXV0aF90aW1lIjoxNzU3NTA4MjU4LCJleHAiOjE3NTc1MTE4NTgsImlhdCI6MTc1NzUwODI1OCwianRpIjoiM2MyOGI5MDUtNmVlMS00ZDkyLTk0NmItMDA5ZGU5ODMzIiwidXNlcm5hbWUiOiJ0ZXN0dXNlcjEyMyJ9.zZxItWGtmCAFxvXZdo3GW5Gy1Ra3B_90DJRE6WVOGykzQLA82rjZsmDv9DiSQZ3J_wJTfJTPK16zL_5SV3IICsgQdsaZssBznCDXmHqdLcqLEiBM7LDVlzEJQXh20NnF8ZG7ccrwGQYfOmSUeVV8_2mQEuy8gUF8S11xJqtvUJdhYuKyUtqqm2vh78r_N4xvzD1j0NsL4AVTkWGhD5ObIqDoBt4teqD8qiheuNfAPTA3m7z6Mlajia1-fZPJIw4nNXIrz6B8XePn65M81n_KH3syDHRux3n9oGtMSASm0ZxJJzOF8ItldbhM653QsN4VRVCh4S4W6AgQnK8yG0TH_NQ",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "News Feed APIs",
+      "item": [
+        {
+          "name": "Get User Feed - New",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-User-ID",
+                "value": "{{userId}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/feeds?limit=20&offset=0&sort=new&includeNSFW=false&includeSpoilers=false",
+              "host": ["{{baseUrl}}"],
+              "path": ["feeds"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                },
+                {
+                  "key": "sort",
+                  "value": "new"
+                },
+                {
+                  "key": "includeNSFW",
+                  "value": "false"
+                },
+                {
+                  "key": "includeSpoilers",
+                  "value": "false"
+                }
+              ]
+            },
+            "description": "Get user's personalized feed sorted by newest posts first"
+          },
+          "response": []
+        },
+        {
+          "name": "Get User Feed - Hot",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-User-ID",
+                "value": "{{userId}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/feeds?limit=20&offset=0&sort=hot&includeNSFW=false&includeSpoilers=false",
+              "host": ["{{baseUrl}}"],
+              "path": ["feeds"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                },
+                {
+                  "key": "sort",
+                  "value": "hot"
+                },
+                {
+                  "key": "includeNSFW",
+                  "value": "false"
+                },
+                {
+                  "key": "includeSpoilers",
+                  "value": "false"
+                }
+              ]
+            },
+            "description": "Get user's personalized feed sorted by hot algorithm"
+          },
+          "response": []
+        },
+        {
+          "name": "Get User Feed - Top",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-User-ID",
+                "value": "{{userId}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/feeds?limit=20&offset=0&sort=top&includeNSFW=false&includeSpoilers=false",
+              "host": ["{{baseUrl}}"],
+              "path": ["feeds"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                },
+                {
+                  "key": "sort",
+                  "value": "top"
+                },
+                {
+                  "key": "includeNSFW",
+                  "value": "false"
+                },
+                {
+                  "key": "includeSpoilers",
+                  "value": "false"
+                }
+              ]
+            },
+            "description": "Get user's personalized feed sorted by top posts"
+          },
+          "response": []
+        },
+        {
+          "name": "Get User Feed - Trending",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-User-ID",
+                "value": "{{userId}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/feeds?limit=20&offset=0&sort=trending&includeNSFW=false&includeSpoilers=false",
+              "host": ["{{baseUrl}}"],
+              "path": ["feeds"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                },
+                {
+                  "key": "sort",
+                  "value": "trending"
+                },
+                {
+                  "key": "includeNSFW",
+                  "value": "false"
+                },
+                {
+                  "key": "includeSpoilers",
+                  "value": "false"
+                }
+              ]
+            },
+            "description": "Get user's personalized feed sorted by trending posts"
+          },
+          "response": []
+        },
+        {
+          "name": "Get User Feed - With Filters",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-User-ID",
+                "value": "{{userId}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/feeds?limit=10&offset=0&sort=new&includeNSFW=true&includeSpoilers=true&subredditId=subreddit123&authorId=user456",
+              "host": ["{{baseUrl}}"],
+              "path": ["feeds"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                },
+                {
+                  "key": "sort",
+                  "value": "new"
+                },
+                {
+                  "key": "includeNSFW",
+                  "value": "true"
+                },
+                {
+                  "key": "includeSpoilers",
+                  "value": "true"
+                },
+                {
+                  "key": "subredditId",
+                  "value": "subreddit123"
+                },
+                {
+                  "key": "authorId",
+                  "value": "user456"
+                }
+              ]
+            },
+            "description": "Get user's personalized feed with various filters applied"
+          },
+          "response": []
+        },
+        {
+          "name": "Get User Feed - Pagination",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-User-ID",
+                "value": "{{userId}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/feeds?limit=5&offset=10&sort=new",
+              "host": ["{{baseUrl}}"],
+              "path": ["feeds"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "5"
+                },
+                {
+                  "key": "offset",
+                  "value": "10"
+                },
+                {
+                  "key": "sort",
+                  "value": "new"
+                }
+              ]
+            },
+            "description": "Get user's personalized feed with pagination (page 3, 5 items per page)"
+          },
+          "response": []
+        },
+        {
+          "name": "Refresh User Feed - Manual",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-User-ID",
+                "value": "{{userId}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"manual\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/feeds/refresh",
+              "host": ["{{baseUrl}}"],
+              "path": ["feeds", "refresh"]
+            },
+            "description": "Manually refresh user's feed"
+          },
+          "response": []
+        },
+        {
+          "name": "Refresh User Feed - Subreddit Joined",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-User-ID",
+                "value": "{{userId}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"subreddit_joined\",\n  \"subredditId\": \"subreddit789\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/feeds/refresh",
+              "host": ["{{baseUrl}}"],
+              "path": ["feeds", "refresh"]
+            },
+            "description": "Refresh user's feed after joining a subreddit"
+          },
+          "response": []
+        },
+        {
+          "name": "Refresh User Feed - User Followed",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-User-ID",
+                "value": "{{userId}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"user_followed\",\n  \"userId\": \"user456\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/feeds/refresh",
+              "host": ["{{baseUrl}}"],
+              "path": ["feeds", "refresh"]
+            },
+            "description": "Refresh user's feed after following a user"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Feed Statistics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-User-ID",
+                "value": "{{userId}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/feeds/stats",
+              "host": ["{{baseUrl}}"],
+              "path": ["feeds", "stats"]
+            },
+            "description": "Get comprehensive feed statistics for the user"
+          },
+          "response": []
+        }
+      ],
+      "description": "Collection of News Feed APIs for personalized content delivery"
+    },
+    {
+      "name": "Test Scenarios",
+      "item": [
+        {
+          "name": "Test Feed Generation Flow",
+          "item": [
+            {
+              "name": "1. Get Empty Feed",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-User-ID",
+                    "value": "{{userId}}"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{authToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/feeds?limit=10&sort=new",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["feeds"],
+                  "query": [
+                    {
+                      "key": "limit",
+                      "value": "10"
+                    },
+                    {
+                      "key": "sort",
+                      "value": "new"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "2. Check Feed Stats",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-User-ID",
+                    "value": "{{userId}}"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{authToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/feeds/stats",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["feeds", "stats"]
+                }
+              }
+            },
+            {
+              "name": "3. Refresh Feed",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-User-ID",
+                    "value": "{{userId}}"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{authToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"reason\": \"manual\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/feeds/refresh",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["feeds", "refresh"]
+                }
+              }
+            }
+          ],
+          "description": "Test the complete feed generation flow"
+        },
+        {
+          "name": "Test Sorting Algorithms",
+          "item": [
+            {
+              "name": "Test New Sorting",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-User-ID",
+                    "value": "{{userId}}"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{authToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/feeds?sort=new&limit=5",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["feeds"],
+                  "query": [
+                    {
+                      "key": "sort",
+                      "value": "new"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "5"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Test Hot Sorting",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-User-ID",
+                    "value": "{{userId}}"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{authToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/feeds?sort=hot&limit=5",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["feeds"],
+                  "query": [
+                    {
+                      "key": "sort",
+                      "value": "hot"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "5"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Test Top Sorting",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-User-ID",
+                    "value": "{{userId}}"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{authToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/feeds?sort=top&limit=5",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["feeds"],
+                  "query": [
+                    {
+                      "key": "sort",
+                      "value": "top"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "5"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Test Trending Sorting",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-User-ID",
+                    "value": "{{userId}}"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{authToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/feeds?sort=trending&limit=5",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["feeds"],
+                  "query": [
+                    {
+                      "key": "sort",
+                      "value": "trending"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "5"
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "description": "Test all sorting algorithms"
+        },
+        {
+          "name": "Test Error Handling",
+          "item": [
+            {
+              "name": "Test Missing User ID",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{authToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/feeds",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["feeds"]
+                }
+              }
+            },
+            {
+              "name": "Test Invalid Sort Type",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-User-ID",
+                    "value": "{{userId}}"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{authToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/feeds?sort=invalid",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["feeds"],
+                  "query": [
+                    {
+                      "key": "sort",
+                      "value": "invalid"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Test Invalid Limit",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-User-ID",
+                    "value": "{{userId}}"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{authToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/feeds?limit=1000",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["feeds"],
+                  "query": [
+                    {
+                      "key": "limit",
+                      "value": "1000"
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "description": "Test error handling scenarios"
+        }
+      ],
+      "description": "Test scenarios for News Feed APIs"
+    }
+  ]
+}

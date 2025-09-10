@@ -46,19 +46,19 @@ Reddit Clone Backend được phát triển theo kiến trúc microservices vớ
 **Timeline**: September 2025 - October 2025
 
 #### News Feed System
-- [ ] **Personalized Feed API**
+- [x] **Personalized Feed API**
   - `GET /feeds` - Get user's personalized news feed
   - `POST /feeds/refresh` - Refresh feed after subreddit changes
   - Feed pagination and infinite scroll support
   - Multiple sorting options (new, hot, top, trending)
 
-- [ ] **Feed Generation Logic**
+- [x] **Feed Generation Logic**
   - Aggregate posts from subscribed subreddits
   - Chronological ordering with recency boost
   - Basic scoring algorithm (upvotes, comments, time)
   - Feed caching for performance
 
-- [ ] **Database Schema**
+- [x] **Database Schema**
   - `user_feeds` table for timeline storage
   - GSI indexes for efficient querying
   - Feed pre-computation for popular users
@@ -77,9 +77,9 @@ Reddit Clone Backend được phát triển theo kiến trúc microservices vớ
   - User activity timeline
 
 #### Technical Implementation
-- [ ] New `FeedsLambda` for feed operations
-- [ ] `user_feeds` DynamoDB table
-- [ ] Feed generation background jobs
+- [x] New `FeedsLambda` for feed operations
+- [x] `user_feeds` DynamoDB table
+- [x] Feed generation background jobs
 - [ ] Redis caching layer (optional)
 
 ---
