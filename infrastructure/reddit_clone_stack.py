@@ -24,6 +24,7 @@ class RedditCloneStack(cdk.Stack):
         self.users_table = self._create_users_table()
         self.posts_table = self._create_posts_table()
         self.subreddits_table = self._create_subreddits_table()
+        self.comments_table = self._create_comments_table()
 
         # Cognito User Pool
         self.user_pool, self.user_pool_client = self._create_cognito_resources()
@@ -116,6 +117,66 @@ class RedditCloneStack(cdk.Stack):
             index_name="TypeIndex",
             partition_key=dynamodb.Attribute(
                 name="postType", type=dynamodb.AttributeType.STRING
+            ),
+            sort_key=dynamodb.Attribute(
+                name="createdAt", type=dynamodb.AttributeType.STRING
+            ),
+        )
+
+        return table
+
+    def _create_comments_table(self) -> dynamodb.Table:
+        """Create DynamoDB table for comments."""
+        table = dynamodb.Table(
+            self,
+            "CommentsTable",
+            table_name="reddit-clone-comments",
+            partition_key=dynamodb.Attribute(
+                name="commentId", type=dynamodb.AttributeType.STRING
+            ),
+            billing_mode=dynamodb.BillingMode.PAY_PER_REQUEST,
+            removal_policy=cdk.RemovalPolicy.DESTROY,  # Use RETAIN for production
+            point_in_time_recovery=True,
+        )
+
+        # GSI for comments by post
+        table.add_global_secondary_index(
+            index_name="PostIndex",
+            partition_key=dynamodb.Attribute(
+                name="postId", type=dynamodb.AttributeType.STRING
+            ),
+            sort_key=dynamodb.Attribute(
+                name="createdAt", type=dynamodb.AttributeType.STRING
+            ),
+        )
+
+        # GSI for comments by author
+        table.add_global_secondary_index(
+            index_name="AuthorIndex",
+            partition_key=dynamodb.Attribute(
+                name="authorId", type=dynamodb.AttributeType.STRING
+            ),
+            sort_key=dynamodb.Attribute(
+                name="createdAt", type=dynamodb.AttributeType.STRING
+            ),
+        )
+
+        # GSI for comments by score (for hot/top sorting)
+        table.add_global_secondary_index(
+            index_name="ScoreIndex",
+            partition_key=dynamodb.Attribute(
+                name="score", type=dynamodb.AttributeType.NUMBER
+            ),
+            sort_key=dynamodb.Attribute(
+                name="createdAt", type=dynamodb.AttributeType.STRING
+            ),
+        )
+
+        # GSI for replies by parent comment
+        table.add_global_secondary_index(
+            index_name="ParentIndex",
+            partition_key=dynamodb.Attribute(
+                name="parentId", type=dynamodb.AttributeType.STRING
             ),
             sort_key=dynamodb.Attribute(
                 name="createdAt", type=dynamodb.AttributeType.STRING
@@ -231,6 +292,8 @@ class RedditCloneStack(cdk.Stack):
                     f"{self.posts_table.table_arn}/index/*",
                     self.subreddits_table.table_arn,
                     f"{self.subreddits_table.table_arn}/index/*",
+                    self.comments_table.table_arn,
+                    f"{self.comments_table.table_arn}/index/*",
                 ],
             )
         )
@@ -279,6 +342,7 @@ class RedditCloneStack(cdk.Stack):
                 "USERS_TABLE": self.users_table.table_name,
                 "POSTS_TABLE": self.posts_table.table_name,
                 "SUBREDDITS_TABLE": self.subreddits_table.table_name,
+                "COMMENTS_TABLE": self.comments_table.table_name,
                 "REGION": self.region,
             },
             timeout=cdk.Duration.seconds(30),
@@ -352,6 +416,26 @@ class RedditCloneStack(cdk.Stack):
         vote_resource = post_resource.add_resource("vote")
         vote_resource.add_method("POST", auth_integration)
 
+        # Comments endpoints
+        comments_resource = api.root.add_resource("comments")
+        
+        # Create comment endpoint
+        comments_create_resource = comments_resource.add_resource("create")
+        comments_create_resource.add_method("POST", auth_integration)
+        
+        # Get comments endpoint
+        comments_resource.add_method("GET", auth_integration)
+        
+        # Individual comment endpoints
+        comment_resource = comments_resource.add_resource("{comment_id}")
+        comment_resource.add_method("GET", auth_integration)
+        comment_resource.add_method("PUT", auth_integration)
+        comment_resource.add_method("DELETE", auth_integration)
+        
+        # Vote comment endpoint
+        comment_vote_resource = comment_resource.add_resource("vote")
+        comment_vote_resource.add_method("POST", auth_integration)
+
         return api
 
     def _create_outputs(self) -> None:
@@ -396,4 +480,11 @@ class RedditCloneStack(cdk.Stack):
             "SubredditsTableName",
             value=self.subreddits_table.table_name,
             description="DynamoDB Subreddits Table Name",
+        )
+
+        cdk.CfnOutput(
+            self,
+            "CommentsTableName",
+            value=self.comments_table.table_name,
+            description="DynamoDB Comments Table Name",
         )

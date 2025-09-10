@@ -1,9 +1,9 @@
 {
   "info": {
     "name": "Reddit Clone Backend API",
-    "description": "Complete API collection for Reddit Clone Backend - Authentication & Posts System",
+    "description": "Complete API collection for Reddit Clone Backend - Authentication, Posts & Comments System",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "version": "2.0.0"
+        "version": "2.1.0"
   },
   "variable": [
     {
@@ -51,9 +51,14 @@
       "value": "",
       "type": "string"
     },
-    {
-      "key": "subredditId",
-      "value": "subreddit_test_123",
+        {
+          "key": "subredditId",
+          "value": "subreddit_test_123",
+          "type": "string"
+        },
+        {
+          "key": "commentId",
+          "value": "",
       "type": "string"
     }
   ],
@@ -1521,6 +1526,853 @@
               "raw": "{{baseUrl}}/posts/{{postId}}",
               "host": ["{{baseUrl}}"],
               "path": ["posts", "{{postId}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Comments",
+      "item": [
+        {
+          "name": "Create Comment",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Response has success true', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "});",
+                  "",
+                  "pm.test('Response contains comment data', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data).to.have.property('comment');",
+                  "    pm.expect(jsonData.data.comment).to.have.property('comment_id');",
+                  "    pm.expect(jsonData.data.comment).to.have.property('post_id');",
+                  "    pm.expect(jsonData.data.comment).to.have.property('author_id');",
+                  "    pm.expect(jsonData.data.comment).to.have.property('content');",
+                  "    pm.expect(jsonData.data.comment).to.have.property('comment_type');",
+                  "    pm.expect(jsonData.data.comment).to.have.property('score');",
+                  "    pm.expect(jsonData.data.comment).to.have.property('upvotes');",
+                  "    pm.expect(jsonData.data.comment).to.have.property('downvotes');",
+                  "    pm.expect(jsonData.data.comment).to.have.property('reply_count');",
+                  "    pm.expect(jsonData.data.comment).to.have.property('created_at');",
+                  "    pm.expect(jsonData.data.comment).to.have.property('updated_at');",
+                  "    pm.expect(jsonData.data.comment).to.have.property('is_deleted');",
+                  "    pm.expect(jsonData.data.comment).to.have.property('is_edited');",
+                  "    pm.expect(jsonData.data.comment).to.have.property('is_locked');",
+                  "    pm.expect(jsonData.data.comment).to.have.property('is_sticky');",
+                  "    pm.expect(jsonData.data.comment).to.have.property('is_nsfw');",
+                  "    pm.expect(jsonData.data.comment).to.have.property('is_spoiler');",
+                  "    pm.expect(jsonData.data.comment).to.have.property('tags');",
+                  "    pm.expect(jsonData.data.comment).to.have.property('awards');",
+                  "    pm.expect(jsonData.data.comment).to.have.property('user_vote');",
+                  "    pm.expect(jsonData.data.comment).to.have.property('replies');",
+                  "    ",
+                  "    // Save comment ID for other tests",
+                  "    pm.collectionVariables.set('commentId', jsonData.data.comment.comment_id);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "X-User-ID",
+                "value": "{{userId}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"post_id\": \"{{postId}}\",\n  \"content\": \"This is a great post! Thanks for sharing.\",\n  \"parent_id\": null,\n  \"comment_type\": \"comment\",\n  \"is_nsfw\": false,\n  \"is_spoiler\": false,\n  \"flair\": \"Discussion\",\n  \"tags\": [\"feedback\", \"positive\"]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/comments/create",
+              "host": ["{{baseUrl}}"],
+              "path": ["comments", "create"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Reply",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Response has success true', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "});",
+                  "",
+                  "pm.test('Response contains comment data', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data).to.have.property('comment');",
+                  "    pm.expect(jsonData.data.comment).to.have.property('comment_id');",
+                  "    pm.expect(jsonData.data.comment).to.have.property('post_id');",
+                  "    pm.expect(jsonData.data.comment).to.have.property('parent_id');",
+                  "    pm.expect(jsonData.data.comment).to.have.property('comment_type');",
+                  "    pm.expect(jsonData.data.comment.comment_type).to.eql('reply');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "X-User-ID",
+                "value": "{{userId}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"post_id\": \"{{postId}}\",\n  \"content\": \"I agree with your point!\",\n  \"parent_id\": \"{{commentId}}\",\n  \"comment_type\": \"reply\",\n  \"is_nsfw\": false,\n  \"is_spoiler\": false,\n  \"flair\": \"Agreement\",\n  \"tags\": [\"agreement\", \"support\"]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/comments/create",
+              "host": ["{{baseUrl}}"],
+              "path": ["comments", "create"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Comment - Invalid Data",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test('Response has success false', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.false;",
+                  "});",
+                  "",
+                  "pm.test('Response contains error', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.error).to.have.property('code');",
+                  "    pm.expect(jsonData.error).to.have.property('message');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "X-User-ID",
+                "value": "{{userId}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"post_id\": \"{{postId}}\",\n  \"content\": \"\",\n  \"parent_id\": null,\n  \"comment_type\": \"comment\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/comments/create",
+              "host": ["{{baseUrl}}"],
+              "path": ["comments", "create"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Comments - All",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has success true', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "});",
+                  "",
+                  "pm.test('Response contains comments data', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data).to.have.property('comments');",
+                  "    pm.expect(jsonData.data).to.have.property('total_count');",
+                  "    pm.expect(jsonData.data).to.have.property('has_more');",
+                  "    pm.expect(jsonData.data).to.have.property('next_offset');",
+                  "    pm.expect(jsonData.data.comments).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/comments?post_id={{postId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["comments"],
+              "query": [
+                {
+                  "key": "post_id",
+                  "value": "{{postId}}"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Comments - With Filters",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has success true', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "});",
+                  "",
+                  "pm.test('Response contains comments data', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data).to.have.property('comments');",
+                  "    pm.expect(jsonData.data).to.have.property('total_count');",
+                  "    pm.expect(jsonData.data).to.have.property('has_more');",
+                  "    pm.expect(jsonData.data).to.have.property('next_offset');",
+                  "    pm.expect(jsonData.data.comments).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/comments?post_id={{postId}}&sort=hot&limit=10&offset=0&include_deleted=false",
+              "host": ["{{baseUrl}}"],
+              "path": ["comments"],
+              "query": [
+                {
+                  "key": "post_id",
+                  "value": "{{postId}}"
+                },
+                {
+                  "key": "sort",
+                  "value": "hot"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                },
+                {
+                  "key": "include_deleted",
+                  "value": "false"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Comment by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has success true', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "});",
+                  "",
+                  "pm.test('Response contains comment data', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data).to.have.property('comment');",
+                  "    pm.expect(jsonData.data.comment).to.have.property('comment_id');",
+                  "    pm.expect(jsonData.data.comment).to.have.property('post_id');",
+                  "    pm.expect(jsonData.data.comment).to.have.property('author_id');",
+                  "    pm.expect(jsonData.data.comment).to.have.property('content');",
+                  "    pm.expect(jsonData.data.comment).to.have.property('comment_type');",
+                  "    pm.expect(jsonData.data.comment).to.have.property('score');",
+                  "    pm.expect(jsonData.data.comment).to.have.property('upvotes');",
+                  "    pm.expect(jsonData.data.comment).to.have.property('downvotes');",
+                  "    pm.expect(jsonData.data.comment).to.have.property('reply_count');",
+                  "    pm.expect(jsonData.data.comment).to.have.property('created_at');",
+                  "    pm.expect(jsonData.data.comment).to.have.property('updated_at');",
+                  "    pm.expect(jsonData.data.comment).to.have.property('is_deleted');",
+                  "    pm.expect(jsonData.data.comment).to.have.property('is_edited');",
+                  "    pm.expect(jsonData.data.comment).to.have.property('is_locked');",
+                  "    pm.expect(jsonData.data.comment).to.have.property('is_sticky');",
+                  "    pm.expect(jsonData.data.comment).to.have.property('is_nsfw');",
+                  "    pm.expect(jsonData.data.comment).to.have.property('is_spoiler');",
+                  "    pm.expect(jsonData.data.comment).to.have.property('tags');",
+                  "    pm.expect(jsonData.data.comment).to.have.property('awards');",
+                  "    pm.expect(jsonData.data.comment).to.have.property('user_vote');",
+                  "    pm.expect(jsonData.data.comment).to.have.property('replies');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/comments/{{commentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["comments", "{{commentId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Comment by ID - Not Found",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 404', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "",
+                  "pm.test('Response has success false', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.false;",
+                  "});",
+                  "",
+                  "pm.test('Response contains error', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.error).to.have.property('code');",
+                  "    pm.expect(jsonData.error).to.have.property('message');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/comments/nonexistent_comment_id",
+              "host": ["{{baseUrl}}"],
+              "path": ["comments", "nonexistent_comment_id"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Comment",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has success true', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "});",
+                  "",
+                  "pm.test('Response contains updated comment data', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data).to.have.property('comment');",
+                  "    pm.expect(jsonData.data.comment).to.have.property('comment_id');",
+                  "    pm.expect(jsonData.data.comment).to.have.property('content');",
+                  "    pm.expect(jsonData.data.comment).to.have.property('updated_at');",
+                  "    pm.expect(jsonData.data.comment).to.have.property('is_edited');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "X-User-ID",
+                "value": "{{userId}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Updated comment content\",\n  \"is_nsfw\": false,\n  \"is_spoiler\": true,\n  \"flair\": \"Updated Flair\",\n  \"tags\": [\"updated\", \"feedback\"]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/comments/{{commentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["comments", "{{commentId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Comment - Access Denied",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 403', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});",
+                  "",
+                  "pm.test('Response has success false', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.false;",
+                  "});",
+                  "",
+                  "pm.test('Response contains error', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.error).to.have.property('code');",
+                  "    pm.expect(jsonData.error).to.have.property('message');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "X-User-ID",
+                "value": "different_user_id",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Updated comment content\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/comments/{{commentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["comments", "{{commentId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Vote Comment - Upvote",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has success true', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "});",
+                  "",
+                  "pm.test('Response contains stats data', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data).to.have.property('stats');",
+                  "    pm.expect(jsonData.data.stats).to.have.property('comment_id');",
+                  "    pm.expect(jsonData.data.stats).to.have.property('score');",
+                  "    pm.expect(jsonData.data.stats).to.have.property('upvotes');",
+                  "    pm.expect(jsonData.data.stats).to.have.property('downvotes');",
+                  "    pm.expect(jsonData.data.stats).to.have.property('reply_count');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "X-User-ID",
+                "value": "{{userId}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vote_type\": \"upvote\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/comments/{{commentId}}/vote",
+              "host": ["{{baseUrl}}"],
+              "path": ["comments", "{{commentId}}", "vote"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Vote Comment - Downvote",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has success true', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "});",
+                  "",
+                  "pm.test('Response contains stats data', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data).to.have.property('stats');",
+                  "    pm.expect(jsonData.data.stats).to.have.property('comment_id');",
+                  "    pm.expect(jsonData.data.stats).to.have.property('score');",
+                  "    pm.expect(jsonData.data.stats).to.have.property('upvotes');",
+                  "    pm.expect(jsonData.data.stats).to.have.property('downvotes');",
+                  "    pm.expect(jsonData.data.stats).to.have.property('reply_count');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "X-User-ID",
+                "value": "{{userId}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vote_type\": \"downvote\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/comments/{{commentId}}/vote",
+              "host": ["{{baseUrl}}"],
+              "path": ["comments", "{{commentId}}", "vote"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Vote Comment - Remove Vote",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has success true', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "});",
+                  "",
+                  "pm.test('Response contains stats data', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data).to.have.property('stats');",
+                  "    pm.expect(jsonData.data.stats).to.have.property('comment_id');",
+                  "    pm.expect(jsonData.data.stats).to.have.property('score');",
+                  "    pm.expect(jsonData.data.stats).to.have.property('upvotes');",
+                  "    pm.expect(jsonData.data.stats).to.have.property('downvotes');",
+                  "    pm.expect(jsonData.data.stats).to.have.property('reply_count');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "X-User-ID",
+                "value": "{{userId}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vote_type\": \"remove\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/comments/{{commentId}}/vote",
+              "host": ["{{baseUrl}}"],
+              "path": ["comments", "{{commentId}}", "vote"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Vote Comment - Invalid Vote Type",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test('Response has success false', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.false;",
+                  "});",
+                  "",
+                  "pm.test('Response contains error', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.error).to.have.property('code');",
+                  "    pm.expect(jsonData.error).to.have.property('message');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "X-User-ID",
+                "value": "{{userId}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vote_type\": \"invalid_vote\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/comments/{{commentId}}/vote",
+              "host": ["{{baseUrl}}"],
+              "path": ["comments", "{{commentId}}", "vote"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Comment",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has success true', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "});",
+                  "",
+                  "pm.test('Response contains success message', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.message).to.include('deleted');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "X-User-ID",
+                "value": "{{userId}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/comments/{{commentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["comments", "{{commentId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Comment - Access Denied",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 403', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});",
+                  "",
+                  "pm.test('Response has success false', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.false;",
+                  "});",
+                  "",
+                  "pm.test('Response contains error', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.error).to.have.property('code');",
+                  "    pm.expect(jsonData.error).to.have.property('message');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "X-User-ID",
+                "value": "different_user_id",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/comments/{{commentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["comments", "{{commentId}}"]
             }
           },
           "response": []

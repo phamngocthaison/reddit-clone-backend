@@ -721,6 +721,381 @@ Access-Control-Allow-Headers: Content-Type, Authorization
 
 ---
 
+## Comments Endpoints
+
+### 1. Create Comment
+
+**POST** `/comments/create`
+
+Tạo comment mới.
+
+#### Headers
+```
+Content-Type: application/json
+X-User-ID: user_1234567890_abcdef12  # For testing purposes
+```
+
+#### Request Body
+```json
+{
+  "post_id": "post_1757473451_1f984949",
+  "content": "This is a great post! Thanks for sharing.",
+  "parent_id": null,
+  "comment_type": "comment",
+  "is_nsfw": false,
+  "is_spoiler": false,
+  "flair": "Discussion",
+  "tags": ["feedback", "positive"]
+}
+```
+
+#### Request Fields
+- **post_id** (required): ID của post
+- **content** (required): Nội dung comment (1-10000 ký tự)
+- **parent_id** (optional): ID của parent comment (cho replies)
+- **comment_type** (optional): Loại comment ("comment" hoặc "reply")
+- **is_nsfw** (optional): Comment có NSFW không (default: false)
+- **is_spoiler** (optional): Comment có spoiler không (default: false)
+- **flair** (optional): Flair của comment (max 50 ký tự)
+- **tags** (optional): Tags của comment (max 5 tags, mỗi tag max 30 ký tự)
+
+#### Success Response (201)
+```json
+{
+  "success": true,
+  "message": "Comment created successfully",
+  "data": {
+    "comment": {
+      "comment_id": "comment_1757473451_1f984949",
+      "post_id": "post_1757473451_1f984949",
+      "author_id": "user_1757432106_d66ab80f40704b1",
+      "parent_id": null,
+      "content": "This is a great post! Thanks for sharing.",
+      "comment_type": "comment",
+      "score": 0,
+      "upvotes": 0,
+      "downvotes": 0,
+      "reply_count": 0,
+      "created_at": "2024-01-15T10:30:00Z",
+      "updated_at": "2024-01-15T10:30:00Z",
+      "is_deleted": false,
+      "is_edited": false,
+      "is_locked": false,
+      "is_sticky": false,
+      "is_nsfw": false,
+      "is_spoiler": false,
+      "flair": "Discussion",
+      "tags": ["feedback", "positive"],
+      "awards": [],
+      "user_vote": null,
+      "replies": []
+    }
+  }
+}
+```
+
+#### Error Responses
+- `400` - Validation error:
+  ```json
+  {
+    "success": false,
+    "error": {
+      "code": "VALIDATION_ERROR",
+      "message": "Content cannot be empty"
+    }
+  }
+  ```
+
+---
+
+### 2. Get Comments
+
+**GET** `/comments?post_id={post_id}&parent_id={parent_id}&sort={sort}&limit={limit}&offset={offset}&include_deleted={include_deleted}`
+
+Lấy danh sách comments của một post.
+
+#### Query Parameters
+- **post_id** (required): ID của post
+- **parent_id** (optional): ID của parent comment (để lấy replies)
+- **sort** (optional): Sắp xếp ("hot", "new", "top", "controversial", "old") (default: "hot")
+- **limit** (optional): Số lượng comments (1-100, default: 20)
+- **offset** (optional): Số comments bỏ qua (default: 0)
+- **include_deleted** (optional): Bao gồm deleted comments (default: false)
+
+#### Success Response (200)
+```json
+{
+  "success": true,
+  "message": "Comments retrieved successfully",
+  "data": {
+    "comments": [
+      {
+        "comment_id": "comment_1757473451_1f984949",
+        "post_id": "post_1757473451_1f984949",
+        "author_id": "user_1757432106_d66ab80f40704b1",
+        "parent_id": null,
+        "content": "This is a great post! Thanks for sharing.",
+        "comment_type": "comment",
+        "score": 15,
+        "upvotes": 18,
+        "downvotes": 3,
+        "reply_count": 2,
+        "created_at": "2024-01-15T10:30:00Z",
+        "updated_at": "2024-01-15T10:30:00Z",
+        "is_deleted": false,
+        "is_edited": false,
+        "is_locked": false,
+        "is_sticky": false,
+        "is_nsfw": false,
+        "is_spoiler": false,
+        "flair": "Discussion",
+        "tags": ["feedback", "positive"],
+        "awards": [],
+        "user_vote": "upvote",
+        "replies": []
+      }
+    ],
+    "total_count": 25,
+    "has_more": true,
+    "next_offset": 20
+  }
+}
+```
+
+---
+
+### 3. Get Comment by ID
+
+**GET** `/comments/{comment_id}`
+
+Lấy chi tiết một comment.
+
+#### Path Parameters
+- **comment_id**: ID của comment
+
+#### Success Response (200)
+```json
+{
+  "success": true,
+  "message": "Comment retrieved successfully",
+  "data": {
+    "comment": {
+      "comment_id": "comment_1757473451_1f984949",
+      "post_id": "post_1757473451_1f984949",
+      "author_id": "user_1757432106_d66ab80f40704b1",
+      "parent_id": null,
+      "content": "This is a great post! Thanks for sharing.",
+      "comment_type": "comment",
+      "score": 15,
+      "upvotes": 18,
+      "downvotes": 3,
+      "reply_count": 2,
+      "created_at": "2024-01-15T10:30:00Z",
+      "updated_at": "2024-01-15T10:30:00Z",
+      "is_deleted": false,
+      "is_edited": false,
+      "is_locked": false,
+      "is_sticky": false,
+      "is_nsfw": false,
+      "is_spoiler": false,
+      "flair": "Discussion",
+      "tags": ["feedback", "positive"],
+      "awards": [],
+      "user_vote": "upvote",
+      "replies": []
+    }
+  }
+}
+```
+
+#### Error Responses
+- `404` - Comment not found:
+  ```json
+  {
+    "success": false,
+    "error": {
+      "code": "COMMENT_NOT_FOUND",
+      "message": "Comment not found"
+    }
+  }
+  ```
+
+---
+
+### 4. Update Comment
+
+**PUT** `/comments/{comment_id}`
+
+Cập nhật comment (chỉ author mới có thể cập nhật).
+
+#### Headers
+```
+Content-Type: application/json
+X-User-ID: user_1234567890_abcdef12  # Must be the comment author
+```
+
+#### Path Parameters
+- **comment_id**: ID của comment cần cập nhật
+
+#### Request Body
+```json
+{
+  "content": "Updated comment content",
+  "is_nsfw": false,
+  "is_spoiler": true,
+  "flair": "Updated Flair",
+  "tags": ["updated", "feedback"]
+}
+```
+
+#### Request Fields
+- **content** (optional): Nội dung comment mới (1-10000 ký tự)
+- **is_nsfw** (optional): Comment có NSFW không
+- **is_spoiler** (optional): Comment có spoiler không
+- **flair** (optional): Flair của comment (max 50 ký tự)
+- **tags** (optional): Tags của comment (max 5 tags, mỗi tag max 30 ký tự)
+
+#### Success Response (200)
+```json
+{
+  "success": true,
+  "message": "Comment updated successfully",
+  "data": {
+    "comment": {
+      "comment_id": "comment_1757473451_1f984949",
+      "post_id": "post_1757473451_1f984949",
+      "author_id": "user_1757432106_d66ab80f40704b1",
+      "parent_id": null,
+      "content": "Updated comment content",
+      "comment_type": "comment",
+      "score": 15,
+      "upvotes": 18,
+      "downvotes": 3,
+      "reply_count": 2,
+      "created_at": "2024-01-15T10:30:00Z",
+      "updated_at": "2024-01-15T10:35:00Z",
+      "is_deleted": false,
+      "is_edited": true,
+      "is_locked": false,
+      "is_sticky": false,
+      "is_nsfw": false,
+      "is_spoiler": true,
+      "flair": "Updated Flair",
+      "tags": ["updated", "feedback"],
+      "awards": [],
+      "user_vote": "upvote",
+      "replies": []
+    }
+  }
+}
+```
+
+#### Error Responses
+- `403` - Access denied:
+  ```json
+  {
+    "success": false,
+    "error": {
+      "code": "COMMENT_ACCESS_DENIED",
+      "message": "Access denied"
+    }
+  }
+  ```
+
+---
+
+### 5. Delete Comment
+
+**DELETE** `/comments/{comment_id}`
+
+Xóa comment (soft delete, chỉ author mới có thể xóa).
+
+#### Headers
+```
+X-User-ID: user_1234567890_abcdef12  # Must be the comment author
+```
+
+#### Path Parameters
+- **comment_id**: ID của comment cần xóa
+
+#### Success Response (200)
+```json
+{
+  "success": true,
+  "message": "Comment deleted successfully"
+}
+```
+
+#### Error Responses
+- `403` - Access denied:
+  ```json
+  {
+    "success": false,
+    "error": {
+      "code": "COMMENT_ACCESS_DENIED",
+      "message": "Access denied"
+    }
+  }
+  ```
+
+---
+
+### 6. Vote Comment
+
+**POST** `/comments/{comment_id}/vote`
+
+Vote cho comment (upvote, downvote, hoặc remove vote).
+
+#### Headers
+```
+Content-Type: application/json
+X-User-ID: user_1234567890_abcdef12
+```
+
+#### Path Parameters
+- **comment_id**: ID của comment cần vote
+
+#### Request Body
+```json
+{
+  "vote_type": "upvote"
+}
+```
+
+#### Request Fields
+- **vote_type** (required): Loại vote ("upvote", "downvote", "remove")
+
+#### Success Response (200)
+```json
+{
+  "success": true,
+  "message": "Vote processed successfully",
+  "data": {
+    "stats": {
+      "comment_id": "comment_1757473451_1f984949",
+      "score": 16,
+      "upvotes": 19,
+      "downvotes": 3,
+      "reply_count": 2
+    }
+  }
+}
+```
+
+#### Error Responses
+- `400` - Validation error:
+  ```json
+  {
+    "success": false,
+    "error": {
+      "code": "VALIDATION_ERROR",
+      "message": "Invalid vote type"
+    }
+  }
+  ```
+
+---
+
 ## Error Codes Reference
 
 | Code | Description |
@@ -733,6 +1108,9 @@ Access-Control-Allow-Headers: Content-Type, Authorization
 | `POST_NOT_FOUND` | Post not found |
 | `POST_ACCESS_DENIED` | Access denied to post operation |
 | `POST_VALIDATION_ERROR` | Post validation failed |
+| `COMMENT_NOT_FOUND` | Comment not found |
+| `COMMENT_ACCESS_DENIED` | Access denied to comment |
+| `COMMENT_VALIDATION_ERROR` | Invalid comment data |
 | `NOT_FOUND` | Endpoint not found |
 | `INTERNAL_ERROR` | Internal server error |
 
@@ -793,6 +1171,16 @@ curl -X POST https://ugn2h0yxwf.execute-api.ap-southeast-1.amazonaws.com/prod/au
 ---
 
 ## Changelog
+
+### v2.1.0 (2025-09-10)
+- **Comments System**: Complete CRUD operations for comments
+- **Comment Types**: Support for comments and replies
+- **Comment Voting**: Upvote, downvote, and remove vote functionality
+- **Comment Filtering**: Advanced filtering and sorting options
+- **Comment Pagination**: Cursor-based pagination for comments
+- **Database**: Added Comments DynamoDB table with GSI indexes
+- **API Gateway**: Added Comments endpoints with proper CORS configuration
+- **Error Handling**: Added Comment-specific error codes
 
 ### v2.0.0 (2025-09-10)
 - **Posts System**: Complete CRUD operations for posts

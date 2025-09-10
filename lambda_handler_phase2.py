@@ -19,7 +19,7 @@ from enum import Enum
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-# Force rebuild - Phase 2 with Posts functionality
+# Force rebuild - Phase 2.3 with Posts and Comments functionality
 
 # ============================================================================
 # MODELS
