@@ -667,30 +667,120 @@ async def handle_get_posts(event: Dict[str, Any]) -> Dict[str, Any]:
         post_responses = []
         for post in posts:
             post_responses.append(PostResponse(
-                post_id=post["postId"],
-                title=post["title"],
-                content=post["content"],
-                author_id=post["authorId"],
-                author_username=post["authorUsername"],
-                subreddit_id=post["subredditId"],
-                post_type=post["postType"],
-                url=post["url"],
-                media_urls=post["mediaUrls"],
-                score=post["score"],
-                upvotes=post["upvotes"],
-                downvotes=post["downvotes"],
-                comment_count=post["commentCount"],
-                view_count=post["viewCount"],
-                created_at=post["createdAt"],
-                updated_at=post["updatedAt"],
+                post_id=post.get("postId", ""),
+                title=post.get("title", ""),
+                content=post.get("content", ""),
+                author_id=post.get("authorId", ""),
+                author_username=post.get("authorUsername", "Unknown"),
+                subreddit_id=post.get("subredditId", ""),
+                post_type=post.get("postType", "text"),
+                url=post.get("url", ""),
+                media_urls=post.get("mediaUrls", []),
+                score=post.get("score", 0),
+                upvotes=post.get("upvotes", 0),
+                downvotes=post.get("downvotes", 0),
+                comment_count=post.get("commentCount", 0),
+                view_count=post.get("viewCount", 0),
+                created_at=post.get("createdAt", ""),
+                updated_at=post.get("updatedAt", ""),
                 is_deleted=post.get("isDeleted", False),
                 is_locked=post.get("isLocked", False),
                 is_sticky=post.get("isSticky", False),
                 is_nsfw=post.get("isNsfw", False),
                 is_spoiler=post.get("isSpoiler", False),
-                flair=post["flair"],
-                tags=post["tags"],
-                awards=post["awards"]
+                flair=post.get("flair", ""),
+                tags=post.get("tags", []),
+                awards=post.get("awards", [])
+            ).dict())
+        
+        return create_success_response(
+            data={
+                "posts": post_responses,
+                "total_count": len(post_responses),
+                "has_more": False,
+                "next_offset": None
+            },
+            message="Posts retrieved successfully"
+        )
+        
+    except Exception as e:
+        logger.error(f"Get posts error: {e}")
+        return create_error_response(500, "INTERNAL_ERROR", "Get posts failed")
+
+async def handle_get_posts(event: Dict[str, Any]) -> Dict[str, Any]:
+    """Handle get posts request."""
+    try:
+        query_params = event.get("queryStringParameters") or {}
+        
+        # Build query parameters
+        query_params_dynamo = {}
+        
+        if query_params.get("subreddit_id"):
+            query_params_dynamo["subredditId"] = query_params["subreddit_id"]
+        
+        if query_params.get("author_id"):
+            query_params_dynamo["authorId"] = query_params["author_id"]
+        
+        if query_params.get("post_type"):
+            query_params_dynamo["postType"] = query_params["post_type"]
+        
+        # Query posts
+        if query_params_dynamo:
+            response = posts_table.scan(
+                FilterExpression=" AND ".join([f"{k} = :{k}" for k in query_params_dynamo.keys()]),
+                ExpressionAttributeValues={f":{k}": v for k, v in query_params_dynamo.items()},
+                Limit=int(query_params.get("limit", 20))
+            )
+        else:
+            response = posts_table.scan(Limit=int(query_params.get("limit", 20)))
+        
+        posts = response.get("Items", [])
+        
+        # Sort posts
+        sort_by = query_params.get("sort_by", "created_at")
+        sort_order = query_params.get("sort_order", "desc")
+        
+        if sort_by == "created_at":
+            posts.sort(key=lambda x: x.get("createdAt", ""), reverse=(sort_order == "desc"))
+        elif sort_by == "score":
+            posts.sort(key=lambda x: x.get("score", 0), reverse=(sort_order == "desc"))
+        
+        # Get author usernames
+        for post in posts:
+            try:
+                user_response = users_table.get_item(Key={"userId": post["authorId"]})
+                post["authorUsername"] = user_response.get("Item", {}).get("username", "Unknown")
+            except:
+                post["authorUsername"] = "Unknown"
+        
+        # Create response
+        post_responses = []
+        for post in posts:
+            post_responses.append(PostResponse(
+                post_id=post.get("postId", ""),
+                title=post.get("title", ""),
+                content=post.get("content", ""),
+                author_id=post.get("authorId", ""),
+                author_username=post.get("authorUsername", "Unknown"),
+                subreddit_id=post.get("subredditId", ""),
+                post_type=post.get("postType", "text"),
+                url=post.get("url", ""),
+                media_urls=post.get("mediaUrls", []),
+                score=post.get("score", 0),
+                upvotes=post.get("upvotes", 0),
+                downvotes=post.get("downvotes", 0),
+                comment_count=post.get("commentCount", 0),
+                view_count=post.get("viewCount", 0),
+                created_at=post.get("createdAt", ""),
+                updated_at=post.get("updatedAt", ""),
+                is_deleted=post.get("isDeleted", False),
+                is_locked=post.get("isLocked", False),
+                is_sticky=post.get("isSticky", False),
+                is_nsfw=post.get("isNsfw", False),
+                is_spoiler=post.get("isSpoiler", False),
+                flair=post.get("flair", ""),
+                tags=post.get("tags", []),
+                awards=post.get("awards", [])
             ).dict())
         
         return create_success_response(
@@ -756,30 +846,30 @@ async def handle_get_posts(event: Dict[str, Any]) -> Dict[str, Any]:
         post_responses = []
         for post in posts:
             post_responses.append(PostResponse(
-                post_id=post["postId"],
-                title=post["title"],
-                content=post["content"],
-                author_id=post["authorId"],
-                author_username=post["authorUsername"],
-                subreddit_id=post["subredditId"],
-                post_type=post["postType"],
-                url=post["url"],
-                media_urls=post["mediaUrls"],
-                score=post["score"],
-                upvotes=post["upvotes"],
-                downvotes=post["downvotes"],
-                comment_count=post["commentCount"],
-                view_count=post["viewCount"],
-                created_at=post["createdAt"],
-                updated_at=post["updatedAt"],
+                post_id=post.get("postId", ""),
+                title=post.get("title", ""),
+                content=post.get("content", ""),
+                author_id=post.get("authorId", ""),
+                author_username=post.get("authorUsername", "Unknown"),
+                subreddit_id=post.get("subredditId", ""),
+                post_type=post.get("postType", "text"),
+                url=post.get("url", ""),
+                media_urls=post.get("mediaUrls", []),
+                score=post.get("score", 0),
+                upvotes=post.get("upvotes", 0),
+                downvotes=post.get("downvotes", 0),
+                comment_count=post.get("commentCount", 0),
+                view_count=post.get("viewCount", 0),
+                created_at=post.get("createdAt", ""),
+                updated_at=post.get("updatedAt", ""),
                 is_deleted=post.get("isDeleted", False),
                 is_locked=post.get("isLocked", False),
                 is_sticky=post.get("isSticky", False),
                 is_nsfw=post.get("isNsfw", False),
                 is_spoiler=post.get("isSpoiler", False),
-                flair=post["flair"],
-                tags=post["tags"],
-                awards=post["awards"]
+                flair=post.get("flair", ""),
+                tags=post.get("tags", []),
+                awards=post.get("awards", [])
             ).dict())
         
         return create_success_response(
@@ -1119,6 +1209,96 @@ async def handle_vote_post(event: Dict[str, Any]) -> Dict[str, Any]:
         logger.error(f"Vote post error: {e}")
         return create_error_response(500, "INTERNAL_ERROR", "Vote post failed")
 
+async def handle_get_posts(event: Dict[str, Any]) -> Dict[str, Any]:
+    """Handle get posts request."""
+    try:
+        query_params = event.get("queryStringParameters") or {}
+        
+        # Build query parameters
+        query_params_dynamo = {}
+        
+        if query_params.get("subreddit_id"):
+            query_params_dynamo["subredditId"] = query_params["subreddit_id"]
+        
+        if query_params.get("author_id"):
+            query_params_dynamo["authorId"] = query_params["author_id"]
+        
+        if query_params.get("post_type"):
+            query_params_dynamo["postType"] = query_params["post_type"]
+        
+        # Query posts
+        if query_params_dynamo:
+            response = posts_table.scan(
+                FilterExpression=" AND ".join([f"{k} = :{k}" for k in query_params_dynamo.keys()]),
+                ExpressionAttributeValues={f":{k}": v for k, v in query_params_dynamo.items()},
+                Limit=int(query_params.get("limit", 20))
+            )
+        else:
+            response = posts_table.scan(Limit=int(query_params.get("limit", 20)))
+        
+        posts = response.get("Items", [])
+        
+        # Sort posts
+        sort_by = query_params.get("sort_by", "created_at")
+        sort_order = query_params.get("sort_order", "desc")
+        
+        if sort_by == "created_at":
+            posts.sort(key=lambda x: x.get("createdAt", ""), reverse=(sort_order == "desc"))
+        elif sort_by == "score":
+            posts.sort(key=lambda x: x.get("score", 0), reverse=(sort_order == "desc"))
+        
+        # Get author usernames
+        for post in posts:
+            try:
+                user_response = users_table.get_item(Key={"userId": post["authorId"]})
+                post["authorUsername"] = user_response.get("Item", {}).get("username", "Unknown")
+            except:
+                post["authorUsername"] = "Unknown"
+        
+        # Create response
+        post_responses = []
+        for post in posts:
+            post_responses.append(PostResponse(
+                post_id=post.get("postId", ""),
+                title=post.get("title", ""),
+                content=post.get("content", ""),
+                author_id=post.get("authorId", ""),
+                author_username=post.get("authorUsername", "Unknown"),
+                subreddit_id=post.get("subredditId", ""),
+                post_type=post.get("postType", "text"),
+                url=post.get("url", ""),
+                media_urls=post.get("mediaUrls", []),
+                score=post.get("score", 0),
+                upvotes=post.get("upvotes", 0),
+                downvotes=post.get("downvotes", 0),
+                comment_count=post.get("commentCount", 0),
+                view_count=post.get("viewCount", 0),
+                created_at=post.get("createdAt", ""),
+                updated_at=post.get("updatedAt", ""),
+                is_deleted=post.get("isDeleted", False),
+                is_locked=post.get("isLocked", False),
+                is_sticky=post.get("isSticky", False),
+                is_nsfw=post.get("isNsfw", False),
+                is_spoiler=post.get("isSpoiler", False),
+                flair=post.get("flair", ""),
+                tags=post.get("tags", []),
+                awards=post.get("awards", [])
+            ).dict())
+        
+        return create_success_response(
+            data={
+                "posts": post_responses,
+                "total_count": len(post_responses),
+                "has_more": False,
+                "next_offset": None
+            },
+            message="Posts retrieved successfully"
+        )
+        
+    except Exception as e:
+        logger.error(f"Get posts error: {e}")
+        return create_error_response(500, "INTERNAL_ERROR", "Get posts failed")
+
 # ============================================================================
 # MAIN HANDLER
 # ============================================================================
@@ -1149,9 +1329,9 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             return asyncio.run(handle_reset_password(event))
         elif resource == "/posts/create" and method == "POST":
             return asyncio.run(handle_create_post(event))
-        elif resource == "/posts" and method == "GET":
+        elif (resource == "/posts" or resource == "/posts/") and method == "GET":
             return asyncio.run(handle_get_posts(event))
-        elif resource.startswith("/posts/") and method == "GET":
+        elif resource.startswith("/posts/") and method == "GET" and resource != "/posts/":
             return asyncio.run(handle_get_post_by_id(event))
         elif resource.startswith("/posts/") and method == "PUT":
             return asyncio.run(handle_update_post(event))
