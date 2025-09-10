@@ -51,6 +51,12 @@ Authorization: Bearer <access_token>
 - Import vào Postman, Insomnia, etc.
 - Code generation support
 
+### 6. [Development Roadmap](./development-roadmap.md)
+- Chi tiết roadmap phát triển
+- Timeline và milestones
+- Technical architecture evolution
+- Success metrics và KPIs
+
 ## 🔧 Setup và Testing
 
 ### 1. Import Postman Collection
