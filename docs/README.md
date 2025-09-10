@@ -57,6 +57,12 @@ Authorization: Bearer <access_token>
 - Technical architecture evolution
 - Success metrics và KPIs
 
+### 7. [News Feed Design](./news-feed-design.md)
+- Technical design document cho News Feed System
+- Database schema và API design
+- Feed generation algorithms
+- Performance optimization strategies
+
 ## 🔧 Setup và Testing
 
 ### 1. Import Postman Collection
