@@ -1,9 +1,9 @@
 {
   "info": {
     "name": "Reddit Clone Backend API",
-    "description": "Complete API collection for Reddit Clone Backend - Separated Lambda Architecture (AuthLambda + CommentsLambda)",
+    "description": "\n# Reddit Clone Backend API Collection\n\n## Auto Authentication Setup\n\nThis collection includes automatic Bearer token management:\n\n1. **Environment Variables Required:**\n   - `base_url`: API base URL (e.g., https://your-api.amazonaws.com/prod)\n   - `test_email`: Test user email\n   - `test_password`: Test user password\n   - `access_token`: (Auto-populated) JWT access token\n\n2. **Auto-Login:**\n   - Collection automatically logs in if no token exists\n   - Token is saved to environment variable\n   - All requests use Bearer token authentication\n\n3. **Manual Login:**\n   - Run any Login request to get fresh token\n   - Token is automatically saved to environment\n\n## Usage:\n1. Set up environment variables\n2. Run any request - auto-login will happen if needed\n3. All subsequent requests will use the saved token\n\n## Architecture:\n- **AuthLambda**: Handles authentication and posts\n- **CommentsLambda**: Handles comments (separate function)\n",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-        "version": "2.2.0"
+    "version": "2.1.0"
   },
   "variable": [
     {
@@ -51,14 +51,14 @@
       "value": "",
       "type": "string"
     },
-        {
-          "key": "subredditId",
-          "value": "subreddit_test_123",
-          "type": "string"
-        },
-        {
-          "key": "commentId",
-          "value": "",
+    {
+      "key": "subredditId",
+      "value": "subreddit_test_123",
+      "type": "string"
+    },
+    {
+      "key": "commentId",
+      "value": "",
       "type": "string"
     }
   ],
@@ -78,32 +78,35 @@
       "script": {
         "type": "text/javascript",
         "exec": [
-          "// Auto-set base URL based on environment",
-          "if (pm.environment.get('environment') === 'local') {",
-          "    pm.collectionVariables.set('baseUrl', pm.collectionVariables.get('localUrl'));",
+          "// Auto-login if no token exists",
+          "const token = pm.environment.get('access_token');",
+          "if (!token) {",
+          "    console.log('No token found, attempting auto-login...');",
+          "    ",
+          "    // Auto-login request",
+          "    pm.sendRequest({",
+          "        url: pm.environment.get('base_url') + '/auth/login',",
+          "        method: 'POST',",
+          "        header: {",
+          "            'Content-Type': 'application/json'",
+          "        },",
+          "        body: {",
+          "            mode: 'raw',",
+          "            raw: JSON.stringify({",
+          "                email: pm.environment.get('test_email') || 'test@example.com',",
+          "                password: pm.environment.get('test_password') || 'TestPass123'",
+          "            })",
+          "        }",
+          "    }, function (err, response) {",
+          "        if (response && response.json() && response.json().data && response.json().data.access_token) {",
+          "            pm.environment.set('access_token', response.json().data.access_token);",
+          "            console.log('Auto-login successful, token saved');",
+          "        } else {",
+          "            console.log('Auto-login failed:', response ? response.json() : err);",
+          "        }",
+          "    });",
           "} else {",
-          "    pm.collectionVariables.set('baseUrl', 'https://ugn2h0yxwf.execute-api.ap-southeast-1.amazonaws.com/prod');",
-          "}"
-        ]
-      }
-    },
-    {
-      "listen": "test",
-      "script": {
-        "type": "text/javascript",
-        "exec": [
-          "// Auto-save tokens from login response",
-          "if (pm.response.code === 200 && pm.response.json().success) {",
-          "    const data = pm.response.json().data;",
-          "    if (data.accessToken) {",
-          "        pm.collectionVariables.set('accessToken', data.accessToken);",
-          "    }",
-          "    if (data.refreshToken) {",
-          "        pm.collectionVariables.set('refreshToken', data.refreshToken);",
-          "    }",
-          "    if (data.user && data.user.userId) {",
-          "        pm.collectionVariables.set('userId', data.user.userId);",
-          "    }",
+          "    console.log('Token found:', token.substring(0, 20) + '...');",
           "}"
         ]
       }
@@ -128,12 +131,23 @@
                 "key": "Access-Control-Request-Headers",
                 "value": "Content-Type, Authorization",
                 "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text",
+                "description": "JWT Bearer token for authentication"
               }
             ],
             "url": {
               "raw": "{{baseUrl}}/auth/register",
-              "host": ["{{baseUrl}}"],
-              "path": ["auth", "register"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
             }
           },
           "response": []
@@ -173,6 +187,12 @@
                 "key": "Content-Type",
                 "value": "application/json",
                 "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text",
+                "description": "JWT Bearer token for authentication"
               }
             ],
             "body": {
@@ -186,8 +206,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/auth/register",
-              "host": ["{{baseUrl}}"],
-              "path": ["auth", "register"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
             }
           },
           "response": []
@@ -225,6 +250,12 @@
                 "key": "Content-Type",
                 "value": "application/json",
                 "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text",
+                "description": "JWT Bearer token for authentication"
               }
             ],
             "body": {
@@ -238,8 +269,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/auth/register",
-              "host": ["{{baseUrl}}"],
-              "path": ["auth", "register"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
             }
           },
           "response": []
@@ -271,6 +307,12 @@
                 "key": "Content-Type",
                 "value": "application/json",
                 "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text",
+                "description": "JWT Bearer token for authentication"
               }
             ],
             "body": {
@@ -284,8 +326,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/auth/register",
-              "host": ["{{baseUrl}}"],
-              "path": ["auth", "register"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
             }
           },
           "response": []
@@ -317,6 +364,12 @@
                 "key": "Content-Type",
                 "value": "application/json",
                 "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text",
+                "description": "JWT Bearer token for authentication"
               }
             ],
             "body": {
@@ -330,14 +383,19 @@
             },
             "url": {
               "raw": "{{baseUrl}}/auth/register",
-              "host": ["{{baseUrl}}"],
-              "path": ["auth", "register"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
             }
           },
           "response": []
         },
         {
-          "name": "User Login - Valid",
+          "name": "User Login - Valid (Email)",
           "event": [
             {
               "listen": "test",
@@ -348,22 +406,22 @@
                   "    pm.response.to.have.status(200);",
                   "});",
                   "",
-                  "pm.test('Response has success true', function () {",
-                  "    const jsonData = pm.response.json();",
-                  "    pm.expect(jsonData.success).to.be.true;",
+                  "pm.test('Response has access token', function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.data).to.have.property('access_token');",
+                  "    ",
+                  "    // Save token to environment",
+                  "    if (response.data.access_token) {",
+                  "        pm.environment.set('access_token', response.data.access_token);",
+                  "        console.log('Token saved to environment');",
+                  "    }",
                   "});",
                   "",
-                  "pm.test('Response contains tokens', function () {",
-                  "    const jsonData = pm.response.json();",
-                  "    pm.expect(jsonData.data).to.have.property('accessToken');",
-                  "    pm.expect(jsonData.data).to.have.property('refreshToken');",
-                  "    pm.expect(jsonData.data).to.have.property('idToken');",
-                  "});",
-                  "",
-                  "pm.test('Response contains user data', function () {",
-                  "    const jsonData = pm.response.json();",
-                  "    pm.expect(jsonData.data).to.have.property('user');",
-                  "    pm.expect(jsonData.data.user).to.have.property('userId');",
+                  "pm.test('Response structure is correct', function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response).to.have.property('success', true);",
+                  "    pm.expect(response).to.have.property('data');",
+                  "    pm.expect(response.data).to.have.property('user_id');",
                   "});"
                 ]
               }
@@ -376,6 +434,12 @@
                 "key": "Content-Type",
                 "value": "application/json",
                 "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text",
+                "description": "JWT Bearer token for authentication"
               }
             ],
             "body": {
@@ -389,8 +453,209 @@
             },
             "url": {
               "raw": "{{baseUrl}}/auth/login",
-              "host": ["{{baseUrl}}"],
-              "path": ["auth", "login"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "User Login - Valid (Username)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has access token', function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.data).to.have.property('access_token');",
+                  "    ",
+                  "    // Save token to environment",
+                  "    if (response.data.access_token) {",
+                  "        pm.environment.set('access_token', response.data.access_token);",
+                  "        console.log('Token saved to environment');",
+                  "    }",
+                  "});",
+                  "",
+                  "pm.test('Response structure is correct', function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response).to.have.property('success', true);",
+                  "    pm.expect(response).to.have.property('data');",
+                  "    pm.expect(response.data).to.have.property('user_id');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text",
+                "description": "JWT Bearer token for authentication"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "User Login - Both Email and Username",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has access token\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data).to.have.property('access_token');",
+                  "    pm.expect(jsonData.data).to.have.property('refresh_token');",
+                  "    pm.expect(jsonData.data).to.have.property('id_token');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text",
+                "description": "JWT Bearer token for authentication"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "User Login - Validation Error (No Credentials)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has access token', function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.data).to.have.property('access_token');",
+                  "    ",
+                  "    // Save token to environment",
+                  "    if (response.data.access_token) {",
+                  "        pm.environment.set('access_token', response.data.access_token);",
+                  "        console.log('Token saved to environment');",
+                  "    }",
+                  "});",
+                  "",
+                  "pm.test('Response structure is correct', function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response).to.have.property('success', true);",
+                  "    pm.expect(response).to.have.property('data');",
+                  "    pm.expect(response.data).to.have.property('user_id');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text",
+                "description": "JWT Bearer token for authentication"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
             }
           },
           "response": []
@@ -428,6 +693,12 @@
                 "key": "Content-Type",
                 "value": "application/json",
                 "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text",
+                "description": "JWT Bearer token for authentication"
               }
             ],
             "body": {
@@ -441,8 +712,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/auth/login",
-              "host": ["{{baseUrl}}"],
-              "path": ["auth", "login"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
             }
           },
           "response": []
@@ -484,6 +760,12 @@
                 "key": "Content-Type",
                 "value": "application/json",
                 "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text",
+                "description": "JWT Bearer token for authentication"
               }
             ],
             "body": {
@@ -497,8 +779,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/auth/logout",
-              "host": ["{{baseUrl}}"],
-              "path": ["auth", "logout"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "logout"
+              ]
             }
           },
           "response": []
@@ -530,6 +817,12 @@
                 "key": "Content-Type",
                 "value": "application/json",
                 "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text",
+                "description": "JWT Bearer token for authentication"
               }
             ],
             "body": {
@@ -543,8 +836,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/auth/logout",
-              "host": ["{{baseUrl}}"],
-              "path": ["auth", "logout"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "logout"
+              ]
             }
           },
           "response": []
@@ -576,6 +874,12 @@
                 "key": "Content-Type",
                 "value": "application/json",
                 "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text",
+                "description": "JWT Bearer token for authentication"
               }
             ],
             "body": {
@@ -589,8 +893,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/auth/forgot-password",
-              "host": ["{{baseUrl}}"],
-              "path": ["auth", "forgot-password"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "forgot-password"
+              ]
             }
           },
           "response": []
@@ -622,6 +931,12 @@
                 "key": "Content-Type",
                 "value": "application/json",
                 "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text",
+                "description": "JWT Bearer token for authentication"
               }
             ],
             "body": {
@@ -635,8 +950,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/auth/reset-password",
-              "host": ["{{baseUrl}}"],
-              "path": ["auth", "reset-password"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "reset-password"
+              ]
             }
           },
           "response": []
@@ -668,6 +988,12 @@
                 "key": "Content-Type",
                 "value": "application/json",
                 "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text",
+                "description": "JWT Bearer token for authentication"
               }
             ],
             "body": {
@@ -681,8 +1007,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/auth/reset-password",
-              "host": ["{{baseUrl}}"],
-              "path": ["auth", "reset-password"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "reset-password"
+              ]
             }
           },
           "response": []
@@ -752,6 +1083,12 @@
                 "key": "X-User-ID",
                 "value": "{{userId}}",
                 "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text",
+                "description": "JWT Bearer token for authentication"
               }
             ],
             "body": {
@@ -765,8 +1102,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/posts/create",
-              "host": ["{{baseUrl}}"],
-              "path": ["posts", "create"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "posts",
+                "create"
+              ]
             }
           },
           "response": []
@@ -813,6 +1155,12 @@
                 "key": "X-User-ID",
                 "value": "{{userId}}",
                 "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text",
+                "description": "JWT Bearer token for authentication"
               }
             ],
             "body": {
@@ -826,8 +1174,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/posts/create",
-              "host": ["{{baseUrl}}"],
-              "path": ["posts", "create"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "posts",
+                "create"
+              ]
             }
           },
           "response": []
@@ -870,6 +1223,12 @@
                 "key": "X-User-ID",
                 "value": "{{userId}}",
                 "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text",
+                "description": "JWT Bearer token for authentication"
               }
             ],
             "body": {
@@ -883,8 +1242,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/posts/create",
-              "host": ["{{baseUrl}}"],
-              "path": ["posts", "create"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "posts",
+                "create"
+              ]
             }
           },
           "response": []
@@ -920,11 +1284,22 @@
           ],
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text",
+                "description": "JWT Bearer token for authentication"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/posts",
-              "host": ["{{baseUrl}}"],
-              "path": ["posts"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "posts"
+              ]
             }
           },
           "response": []
@@ -960,11 +1335,22 @@
           ],
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text",
+                "description": "JWT Bearer token for authentication"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/posts?subreddit_id={{subredditId}}&sort=hot&limit=10&offset=0&post_type=text&is_nsfw=false",
-              "host": ["{{baseUrl}}"],
-              "path": ["posts"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "posts"
+              ],
               "query": [
                 {
                   "key": "subreddit_id",
@@ -1041,11 +1427,23 @@
           ],
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text",
+                "description": "JWT Bearer token for authentication"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/posts/{{postId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["posts", "{{postId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "posts",
+                "{{postId}}"
+              ]
             }
           },
           "response": []
@@ -1078,11 +1476,23 @@
           ],
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text",
+                "description": "JWT Bearer token for authentication"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/posts/nonexistent_post_id",
-              "host": ["{{baseUrl}}"],
-              "path": ["posts", "nonexistent_post_id"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "posts",
+                "nonexistent_post_id"
+              ]
             }
           },
           "response": []
@@ -1128,6 +1538,12 @@
                 "key": "X-User-ID",
                 "value": "{{userId}}",
                 "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text",
+                "description": "JWT Bearer token for authentication"
               }
             ],
             "body": {
@@ -1141,8 +1557,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/posts/{{postId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["posts", "{{postId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "posts",
+                "{{postId}}"
+              ]
             }
           },
           "response": []
@@ -1185,6 +1606,12 @@
                 "key": "X-User-ID",
                 "value": "different_user_id",
                 "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text",
+                "description": "JWT Bearer token for authentication"
               }
             ],
             "body": {
@@ -1198,8 +1625,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/posts/{{postId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["posts", "{{postId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "posts",
+                "{{postId}}"
+              ]
             }
           },
           "response": []
@@ -1247,6 +1679,12 @@
                 "key": "X-User-ID",
                 "value": "{{userId}}",
                 "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text",
+                "description": "JWT Bearer token for authentication"
               }
             ],
             "body": {
@@ -1260,8 +1698,14 @@
             },
             "url": {
               "raw": "{{baseUrl}}/posts/{{postId}}/vote",
-              "host": ["{{baseUrl}}"],
-              "path": ["posts", "{{postId}}", "vote"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "posts",
+                "{{postId}}",
+                "vote"
+              ]
             }
           },
           "response": []
@@ -1309,6 +1753,12 @@
                 "key": "X-User-ID",
                 "value": "{{userId}}",
                 "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text",
+                "description": "JWT Bearer token for authentication"
               }
             ],
             "body": {
@@ -1322,8 +1772,14 @@
             },
             "url": {
               "raw": "{{baseUrl}}/posts/{{postId}}/vote",
-              "host": ["{{baseUrl}}"],
-              "path": ["posts", "{{postId}}", "vote"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "posts",
+                "{{postId}}",
+                "vote"
+              ]
             }
           },
           "response": []
@@ -1371,6 +1827,12 @@
                 "key": "X-User-ID",
                 "value": "{{userId}}",
                 "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text",
+                "description": "JWT Bearer token for authentication"
               }
             ],
             "body": {
@@ -1384,8 +1846,14 @@
             },
             "url": {
               "raw": "{{baseUrl}}/posts/{{postId}}/vote",
-              "host": ["{{baseUrl}}"],
-              "path": ["posts", "{{postId}}", "vote"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "posts",
+                "{{postId}}",
+                "vote"
+              ]
             }
           },
           "response": []
@@ -1428,6 +1896,12 @@
                 "key": "X-User-ID",
                 "value": "{{userId}}",
                 "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text",
+                "description": "JWT Bearer token for authentication"
               }
             ],
             "body": {
@@ -1441,8 +1915,14 @@
             },
             "url": {
               "raw": "{{baseUrl}}/posts/{{postId}}/vote",
-              "host": ["{{baseUrl}}"],
-              "path": ["posts", "{{postId}}", "vote"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "posts",
+                "{{postId}}",
+                "vote"
+              ]
             }
           },
           "response": []
@@ -1479,12 +1959,23 @@
                 "key": "X-User-ID",
                 "value": "{{userId}}",
                 "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text",
+                "description": "JWT Bearer token for authentication"
               }
             ],
             "url": {
               "raw": "{{baseUrl}}/posts/{{postId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["posts", "{{postId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "posts",
+                "{{postId}}"
+              ]
             }
           },
           "response": []
@@ -1522,12 +2013,23 @@
                 "key": "X-User-ID",
                 "value": "different_user_id",
                 "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text",
+                "description": "JWT Bearer token for authentication"
               }
             ],
             "url": {
               "raw": "{{baseUrl}}/posts/{{postId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["posts", "{{postId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "posts",
+                "{{postId}}"
+              ]
             }
           },
           "response": []
@@ -1599,6 +2101,12 @@
                 "key": "X-User-ID",
                 "value": "{{userId}}",
                 "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text",
+                "description": "JWT Bearer token for authentication"
               }
             ],
             "body": {
@@ -1612,8 +2120,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/comments/create",
-              "host": ["{{baseUrl}}"],
-              "path": ["comments", "create"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "comments",
+                "create"
+              ]
             }
           },
           "response": []
@@ -1660,6 +2173,12 @@
                 "key": "X-User-ID",
                 "value": "{{userId}}",
                 "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text",
+                "description": "JWT Bearer token for authentication"
               }
             ],
             "body": {
@@ -1673,8 +2192,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/comments/create",
-              "host": ["{{baseUrl}}"],
-              "path": ["comments", "create"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "comments",
+                "create"
+              ]
             }
           },
           "response": []
@@ -1717,6 +2241,12 @@
                 "key": "X-User-ID",
                 "value": "{{userId}}",
                 "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text",
+                "description": "JWT Bearer token for authentication"
               }
             ],
             "body": {
@@ -1730,8 +2260,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/comments/create",
-              "host": ["{{baseUrl}}"],
-              "path": ["comments", "create"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "comments",
+                "create"
+              ]
             }
           },
           "response": []
@@ -1767,11 +2302,22 @@
           ],
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text",
+                "description": "JWT Bearer token for authentication"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/comments?post_id={{postId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["comments"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "comments"
+              ],
               "query": [
                 {
                   "key": "post_id",
@@ -1813,11 +2359,22 @@
           ],
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text",
+                "description": "JWT Bearer token for authentication"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/comments?post_id={{postId}}&sort=hot&limit=10&offset=0&include_deleted=false",
-              "host": ["{{baseUrl}}"],
-              "path": ["comments"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "comments"
+              ],
               "query": [
                 {
                   "key": "post_id",
@@ -1892,11 +2449,23 @@
           ],
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text",
+                "description": "JWT Bearer token for authentication"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/comments/{{commentId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["comments", "{{commentId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "comments",
+                "{{commentId}}"
+              ]
             }
           },
           "response": []
@@ -1929,11 +2498,23 @@
           ],
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text",
+                "description": "JWT Bearer token for authentication"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/comments/nonexistent_comment_id",
-              "host": ["{{baseUrl}}"],
-              "path": ["comments", "nonexistent_comment_id"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "comments",
+                "nonexistent_comment_id"
+              ]
             }
           },
           "response": []
@@ -1979,6 +2560,12 @@
                 "key": "X-User-ID",
                 "value": "{{userId}}",
                 "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text",
+                "description": "JWT Bearer token for authentication"
               }
             ],
             "body": {
@@ -1992,8 +2579,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/comments/{{commentId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["comments", "{{commentId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "comments",
+                "{{commentId}}"
+              ]
             }
           },
           "response": []
@@ -2036,6 +2628,12 @@
                 "key": "X-User-ID",
                 "value": "different_user_id",
                 "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text",
+                "description": "JWT Bearer token for authentication"
               }
             ],
             "body": {
@@ -2049,8 +2647,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/comments/{{commentId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["comments", "{{commentId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "comments",
+                "{{commentId}}"
+              ]
             }
           },
           "response": []
@@ -2097,6 +2700,12 @@
                 "key": "X-User-ID",
                 "value": "{{userId}}",
                 "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text",
+                "description": "JWT Bearer token for authentication"
               }
             ],
             "body": {
@@ -2110,8 +2719,14 @@
             },
             "url": {
               "raw": "{{baseUrl}}/comments/{{commentId}}/vote",
-              "host": ["{{baseUrl}}"],
-              "path": ["comments", "{{commentId}}", "vote"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "comments",
+                "{{commentId}}",
+                "vote"
+              ]
             }
           },
           "response": []
@@ -2158,6 +2773,12 @@
                 "key": "X-User-ID",
                 "value": "{{userId}}",
                 "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text",
+                "description": "JWT Bearer token for authentication"
               }
             ],
             "body": {
@@ -2171,8 +2792,14 @@
             },
             "url": {
               "raw": "{{baseUrl}}/comments/{{commentId}}/vote",
-              "host": ["{{baseUrl}}"],
-              "path": ["comments", "{{commentId}}", "vote"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "comments",
+                "{{commentId}}",
+                "vote"
+              ]
             }
           },
           "response": []
@@ -2219,6 +2846,12 @@
                 "key": "X-User-ID",
                 "value": "{{userId}}",
                 "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text",
+                "description": "JWT Bearer token for authentication"
               }
             ],
             "body": {
@@ -2232,8 +2865,14 @@
             },
             "url": {
               "raw": "{{baseUrl}}/comments/{{commentId}}/vote",
-              "host": ["{{baseUrl}}"],
-              "path": ["comments", "{{commentId}}", "vote"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "comments",
+                "{{commentId}}",
+                "vote"
+              ]
             }
           },
           "response": []
@@ -2276,6 +2915,12 @@
                 "key": "X-User-ID",
                 "value": "{{userId}}",
                 "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text",
+                "description": "JWT Bearer token for authentication"
               }
             ],
             "body": {
@@ -2289,8 +2934,14 @@
             },
             "url": {
               "raw": "{{baseUrl}}/comments/{{commentId}}/vote",
-              "host": ["{{baseUrl}}"],
-              "path": ["comments", "{{commentId}}", "vote"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "comments",
+                "{{commentId}}",
+                "vote"
+              ]
             }
           },
           "response": []
@@ -2327,12 +2978,23 @@
                 "key": "X-User-ID",
                 "value": "{{userId}}",
                 "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text",
+                "description": "JWT Bearer token for authentication"
               }
             ],
             "url": {
               "raw": "{{baseUrl}}/comments/{{commentId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["comments", "{{commentId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "comments",
+                "{{commentId}}"
+              ]
             }
           },
           "response": []
@@ -2370,12 +3032,23 @@
                 "key": "X-User-ID",
                 "value": "different_user_id",
                 "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text",
+                "description": "JWT Bearer token for authentication"
               }
             ],
             "url": {
               "raw": "{{baseUrl}}/comments/{{commentId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["comments", "{{commentId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "comments",
+                "{{commentId}}"
+              ]
             }
           },
           "response": []
@@ -2407,11 +3080,23 @@
           ],
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text",
+                "description": "JWT Bearer token for authentication"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/invalid/endpoint",
-              "host": ["{{baseUrl}}"],
-              "path": ["invalid", "endpoint"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "invalid",
+                "endpoint"
+              ]
             }
           },
           "response": []
@@ -2443,6 +3128,12 @@
                 "key": "Content-Type",
                 "value": "application/json",
                 "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text",
+                "description": "JWT Bearer token for authentication"
               }
             ],
             "body": {
@@ -2456,8 +3147,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/auth/register",
-              "host": ["{{baseUrl}}"],
-              "path": ["auth", "register"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
             }
           },
           "response": []
@@ -2495,6 +3191,12 @@
                 "key": "Content-Type",
                 "value": "application/json",
                 "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text",
+                "description": "JWT Bearer token for authentication"
               }
             ],
             "body": {
@@ -2508,8 +3210,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/posts/create",
-              "host": ["{{baseUrl}}"],
-              "path": ["posts", "create"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "posts",
+                "create"
+              ]
             }
           },
           "response": []
@@ -2552,6 +3259,12 @@
                 "key": "X-User-ID",
                 "value": "{{userId}}",
                 "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text",
+                "description": "JWT Bearer token for authentication"
               }
             ],
             "body": {
@@ -2565,8 +3278,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/posts/create",
-              "host": ["{{baseUrl}}"],
-              "path": ["posts", "create"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "posts",
+                "create"
+              ]
             }
           },
           "response": []
@@ -2599,11 +3317,22 @@
           ],
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text",
+                "description": "JWT Bearer token for authentication"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/posts?sort=invalid_sort",
-              "host": ["{{baseUrl}}"],
-              "path": ["posts"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "posts"
+              ],
               "query": [
                 {
                   "key": "sort",
@@ -2642,11 +3371,22 @@
           ],
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text",
+                "description": "JWT Bearer token for authentication"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/posts?limit=invalid_limit",
-              "host": ["{{baseUrl}}"],
-              "path": ["posts"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "posts"
+              ],
               "query": [
                 {
                   "key": "limit",
@@ -2685,11 +3425,22 @@
           ],
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text",
+                "description": "JWT Bearer token for authentication"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/posts?offset=invalid_offset",
-              "host": ["{{baseUrl}}"],
-              "path": ["posts"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "posts"
+              ],
               "query": [
                 {
                   "key": "offset",
@@ -2728,11 +3479,22 @@
           ],
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text",
+                "description": "JWT Bearer token for authentication"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/posts?is_nsfw=invalid_boolean",
-              "host": ["{{baseUrl}}"],
-              "path": ["posts"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "posts"
+              ],
               "query": [
                 {
                   "key": "is_nsfw",
@@ -2771,11 +3533,22 @@
           ],
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text",
+                "description": "JWT Bearer token for authentication"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/posts?is_spoiler=invalid_boolean",
-              "host": ["{{baseUrl}}"],
-              "path": ["posts"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "posts"
+              ],
               "query": [
                 {
                   "key": "is_spoiler",

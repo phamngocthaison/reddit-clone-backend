@@ -126,15 +126,40 @@ X-User-ID: user_1757485758_cde044d0
 
 **POST** `/auth/login`
 
-Đăng nhập user.
+Đăng nhập user. Hỗ trợ đăng nhập bằng email hoặc username.
 
-#### Request Body
+#### Request Body Options
+
+**Option 1: Login with Email**
 ```json
 {
   "email": "user@example.com",
   "password": "SecurePass123"
 }
 ```
+
+**Option 2: Login with Username**
+```json
+{
+  "username": "username123",
+  "password": "SecurePass123"
+}
+```
+
+**Option 3: Login with Both (Email takes priority)**
+```json
+{
+  "email": "user@example.com",
+  "username": "username123",
+  "password": "SecurePass123"
+}
+```
+
+#### Validation Rules
+- **email**: Valid email format, optional (if username not provided)
+- **username**: 3-20 characters, optional (if email not provided)
+- **password**: Required
+- **Note**: At least one of email or username must be provided
 
 #### Success Response (200)
 ```json
@@ -158,6 +183,21 @@ X-User-ID: user_1757485758_cde044d0
 ```
 
 #### Error Responses
+- `400` - Validation error (missing credentials):
+  ```json
+  {
+    "success": false,
+    "error": {
+      "code": "VALIDATION_ERROR",
+      "message": "Validation failed",
+      "additional_data": {
+        "validation_errors": [
+          "Either username or email must be provided"
+        ]
+      }
+    }
+  }
+  ```
 - `400` - Invalid credentials:
   ```json
   {
@@ -1162,12 +1202,31 @@ curl -X POST https://ugn2h0yxwf.execute-api.ap-southeast-1.amazonaws.com/prod/au
   }'
 ```
 
-#### Login
+#### Login with Email
 ```bash
 curl -X POST https://ugn2h0yxwf.execute-api.ap-southeast-1.amazonaws.com/prod/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "email": "test@example.com",
+    "password": "TestPass123"
+  }'
+```
+
+#### Login with Username
+```bash
+curl -X POST https://ugn2h0yxwf.execute-api.ap-southeast-1.amazonaws.com/prod/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "testuser123",
+    "password": "TestPass123"
+  }'
+```
+
+#### Login Validation Error (No Credentials)
+```bash
+curl -X POST https://ugn2h0yxwf.execute-api.ap-southeast-1.amazonaws.com/prod/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
     "password": "TestPass123"
   }'
 ```
@@ -1183,6 +1242,13 @@ curl -X POST https://ugn2h0yxwf.execute-api.ap-southeast-1.amazonaws.com/prod/au
 ---
 
 ## Changelog
+
+### v2.2.0 (2025-09-10)
+- **Flexible Login**: Support both email and username for login
+- **Enhanced Validation**: Improved validation error messages with detailed field information
+- **Login Options**: Multiple login methods (email-only, username-only, both)
+- **Better Error Handling**: Clear validation error responses for missing credentials
+- **Updated Documentation**: Comprehensive API contract and Postman collection updates
 
 ### v2.1.0 (2025-09-10)
 - **Comments System**: Complete CRUD operations for comments

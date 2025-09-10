@@ -41,7 +41,7 @@ AUTH_MODE = os.environ.get('AUTH_MODE', 'hybrid')  # 'jwt', 'x-user-id', 'hybrid
 # AUTHENTICATION MODELS
 # ============================================================================
 
-from pydantic import BaseModel, EmailStr, validator, Field, ValidationError
+from pydantic import BaseModel, EmailStr, validator, Field, root_validator, ValidationError
 from typing import Optional, List
 from enum import Enum
 import uuid
@@ -58,8 +58,18 @@ class RegisterRequest(BaseModel):
         return v
 
 class LoginRequest(BaseModel):
-    username: str
+    username: Optional[str] = None
+    email: Optional[EmailStr] = None
     password: str
+    
+    @root_validator
+    def validate_username_or_email(cls, values):
+        # At least one of username or email must be provided
+        username = values.get('username')
+        email = values.get('email')
+        if not username and not email:
+            raise ValueError('Either username or email must be provided')
+        return values
 
 class ForgotPasswordRequest(BaseModel):
     email: EmailStr
@@ -381,12 +391,15 @@ async def handle_login(event: Dict[str, Any]) -> Dict[str, Any]:
         
         # Authenticate with Cognito
         try:
+            # Use email if provided, otherwise use username
+            login_username = request.email or request.username
+            
             response = cognito.admin_initiate_auth(
                 UserPoolId=USER_POOL_ID,
                 ClientId=CLIENT_ID,
                 AuthFlow="ADMIN_NO_SRP_AUTH",
                 AuthParameters={
-                    "USERNAME": request.username,
+                    "USERNAME": login_username,
                     "PASSWORD": request.password,
                 },
             )
@@ -394,7 +407,7 @@ async def handle_login(event: Dict[str, Any]) -> Dict[str, Any]:
             # Get user details
             user_response = cognito.admin_get_user(
                 UserPoolId=USER_POOL_ID,
-                Username=request.username
+                Username=login_username
             )
             
             # Extract user ID from custom attributes
@@ -424,6 +437,20 @@ async def handle_login(event: Dict[str, Any]) -> Dict[str, Any]:
             else:
                 raise e
                 
+    except ValidationError as e:
+        logger.error(f"Login validation error: {e}")
+        error_details = []
+        for error in e.errors():
+            field = " -> ".join(str(loc) for loc in error["loc"])
+            message = error["msg"]
+            error_details.append(f"{field}: {message}")
+        
+        return create_error_response(
+            400,
+            "VALIDATION_ERROR",
+            "Validation failed",
+            {"validation_errors": error_details}
+        )
     except Exception as e:
         logger.error(f"Login error: {e}")
         return create_error_response(500, "INTERNAL_ERROR", "Login failed")
@@ -594,6 +621,97 @@ async def handle_get_posts(event: Dict[str, Any]) -> Dict[str, Any]:
     """Handle get posts request."""
     try:
         query_params = event.get("queryStringParameters") or {}
+        
+        # Build query parameters
+        query_params_dynamo = {}
+        
+        if query_params.get("subreddit_id"):
+            query_params_dynamo["subredditId"] = query_params["subreddit_id"]
+        
+        if query_params.get("author_id"):
+            query_params_dynamo["authorId"] = query_params["author_id"]
+        
+        if query_params.get("post_type"):
+            query_params_dynamo["postType"] = query_params["post_type"]
+        
+        # Query posts
+        if query_params_dynamo:
+            response = posts_table.scan(
+                FilterExpression=" AND ".join([f"{k} = :{k}" for k in query_params_dynamo.keys()]),
+                ExpressionAttributeValues={f":{k}": v for k, v in query_params_dynamo.items()},
+                Limit=int(query_params.get("limit", 20))
+            )
+        else:
+            response = posts_table.scan(Limit=int(query_params.get("limit", 20)))
+        
+        posts = response.get("Items", [])
+        
+        # Sort posts
+        sort_by = query_params.get("sort_by", "created_at")
+        sort_order = query_params.get("sort_order", "desc")
+        
+        if sort_by == "created_at":
+            posts.sort(key=lambda x: x.get("createdAt", ""), reverse=(sort_order == "desc"))
+        elif sort_by == "score":
+            posts.sort(key=lambda x: x.get("score", 0), reverse=(sort_order == "desc"))
+        
+        # Get author usernames
+        for post in posts:
+            try:
+                user_response = users_table.get_item(Key={"userId": post["authorId"]})
+                post["authorUsername"] = user_response.get("Item", {}).get("username", "Unknown")
+            except:
+                post["authorUsername"] = "Unknown"
+        
+        # Create response
+        post_responses = []
+        for post in posts:
+            post_responses.append(PostResponse(
+                post_id=post["postId"],
+                title=post["title"],
+                content=post["content"],
+                author_id=post["authorId"],
+                author_username=post["authorUsername"],
+                subreddit_id=post["subredditId"],
+                post_type=post["postType"],
+                url=post["url"],
+                media_urls=post["mediaUrls"],
+                score=post["score"],
+                upvotes=post["upvotes"],
+                downvotes=post["downvotes"],
+                comment_count=post["commentCount"],
+                view_count=post["viewCount"],
+                created_at=post["createdAt"],
+                updated_at=post["updatedAt"],
+                is_deleted=post.get("isDeleted", False),
+                is_locked=post.get("isLocked", False),
+                is_sticky=post.get("isSticky", False),
+                is_nsfw=post.get("isNsfw", False),
+                is_spoiler=post.get("isSpoiler", False),
+                flair=post["flair"],
+                tags=post["tags"],
+                awards=post["awards"]
+            ).dict())
+        
+        return create_success_response(
+            data={
+                "posts": post_responses,
+                "total_count": len(post_responses),
+                "has_more": False,
+                "next_offset": None
+            },
+            message="Posts retrieved successfully"
+        )
+        
+    except Exception as e:
+        logger.error(f"Get posts error: {e}")
+        return create_error_response(500, "INTERNAL_ERROR", "Get posts failed")
+
+
+async def handle_get_posts(event: Dict[str, Any]) -> Dict[str, Any]:
+    """Handle get posts request."""
+    try:
+        query_params = event.get("queryStringParameters") or {}
         request = GetPostsRequest(**query_params)
         
         # Build query parameters
@@ -678,6 +796,329 @@ async def handle_get_posts(event: Dict[str, Any]) -> Dict[str, Any]:
         logger.error(f"Get posts error: {e}")
         return create_error_response(500, "INTERNAL_ERROR", "Get posts failed")
 
+async def handle_get_post_by_id(event: Dict[str, Any]) -> Dict[str, Any]:
+    """Handle get post by ID request."""
+    try:
+        # Extract post ID from path
+        path = event.get("path", "")
+        post_id = path.split("/")[-1]
+        
+        if not post_id or post_id == "posts":
+            return create_error_response(400, "INVALID_POST_ID", "Post ID is required")
+        
+        # Get post from DynamoDB
+        response = posts_table.get_item(Key={"postId": post_id})
+        
+        if "Item" not in response:
+            return create_error_response(404, "POST_NOT_FOUND", "Post not found")
+        
+        post = response["Item"]
+        
+        # Get author username
+        try:
+            user_response = users_table.get_item(Key={"userId": post["authorId"]})
+            author_username = user_response.get("Item", {}).get("username", "Unknown")
+        except:
+            author_username = "Unknown"
+        
+        # Create response
+        post_response = PostResponse(
+            post_id=post["postId"],
+            title=post["title"],
+            content=post["content"],
+            author_id=post["authorId"],
+            author_username=author_username,
+            subreddit_id=post["subredditId"],
+            post_type=post["postType"],
+            url=post["url"],
+            media_urls=post["mediaUrls"],
+            score=post["score"],
+            upvotes=post["upvotes"],
+            downvotes=post["downvotes"],
+            comment_count=post["commentCount"],
+            view_count=post["viewCount"],
+            created_at=post["createdAt"],
+            updated_at=post["updatedAt"],
+            is_deleted=post.get("isDeleted", False),
+            is_locked=post.get("isLocked", False),
+            is_sticky=post.get("isSticky", False),
+            is_nsfw=post.get("isNsfw", False),
+            is_spoiler=post.get("isSpoiler", False),
+            flair=post["flair"],
+            tags=post["tags"],
+            awards=post["awards"]
+        )
+        
+        return create_success_response(
+            data={"post": post_response.dict()},
+            message="Post retrieved successfully"
+        )
+        
+    except Exception as e:
+        logger.error(f"Get post by ID error: {e}")
+        return create_error_response(500, "INTERNAL_ERROR", "Get post failed")
+
+async def handle_update_post(event: Dict[str, Any]) -> Dict[str, Any]:
+    """Handle update post request."""
+    try:
+        # Check authentication
+        auth_error = require_authentication(event)
+        if auth_error:
+            return auth_error
+        
+        # Extract post ID from path
+        path = event.get("path", "")
+        post_id = path.split("/")[-1]
+        
+        if not post_id or post_id == "posts":
+            return create_error_response(400, "INVALID_POST_ID", "Post ID is required")
+        
+        body = json.loads(event.get("body", "{}"))
+        request = UpdatePostRequest(**body)
+        user_id = get_user_id_from_event(event)
+        
+        # Get existing post
+        response = posts_table.get_item(Key={"postId": post_id})
+        
+        if "Item" not in response:
+            return create_error_response(404, "POST_NOT_FOUND", "Post not found")
+        
+        post = response["Item"]
+        
+        # Check if user is the author
+        if post["authorId"] != user_id:
+            return create_error_response(403, "ACCESS_DENIED", "Only the author can update this post")
+        
+        # Update post data
+        update_expression = "SET updatedAt = :updatedAt"
+        expression_values = {":updatedAt": datetime.now(timezone.utc).isoformat()}
+        
+        if request.title is not None:
+            update_expression += ", title = :title"
+            expression_values[":title"] = request.title
+        
+        if request.content is not None:
+            update_expression += ", content = :content"
+            expression_values[":content"] = request.content
+        
+        if request.is_nsfw is not None:
+            update_expression += ", isNsfw = :isNsfw"
+            expression_values[":isNsfw"] = request.is_nsfw
+        
+        if request.is_spoiler is not None:
+            update_expression += ", isSpoiler = :isSpoiler"
+            expression_values[":isSpoiler"] = request.is_spoiler
+        
+        if request.flair is not None:
+            update_expression += ", flair = :flair"
+            expression_values[":flair"] = request.flair
+        
+        if request.tags is not None:
+            update_expression += ", tags = :tags"
+            expression_values[":tags"] = request.tags
+        
+        # Update post in DynamoDB
+        posts_table.update_item(
+            Key={"postId": post_id},
+            UpdateExpression=update_expression,
+            ExpressionAttributeValues=expression_values
+        )
+        
+        # Get updated post
+        updated_response = posts_table.get_item(Key={"postId": post_id})
+        updated_post = updated_response["Item"]
+        
+        # Get author username
+        try:
+            user_response = users_table.get_item(Key={"userId": updated_post["authorId"]})
+            author_username = user_response.get("Item", {}).get("username", "Unknown")
+        except:
+            author_username = "Unknown"
+        
+        # Create response
+        post_response = PostResponse(
+            post_id=updated_post["postId"],
+            title=updated_post["title"],
+            content=updated_post["content"],
+            author_id=updated_post["authorId"],
+            author_username=author_username,
+            subreddit_id=updated_post["subredditId"],
+            post_type=updated_post["postType"],
+            url=updated_post["url"],
+            media_urls=updated_post["mediaUrls"],
+            score=updated_post["score"],
+            upvotes=updated_post["upvotes"],
+            downvotes=updated_post["downvotes"],
+            comment_count=updated_post["commentCount"],
+            view_count=updated_post["viewCount"],
+            created_at=updated_post["createdAt"],
+            updated_at=updated_post["updatedAt"],
+            is_deleted=updated_post.get("isDeleted", False),
+            is_locked=updated_post.get("isLocked", False),
+            is_sticky=updated_post.get("isSticky", False),
+            is_nsfw=updated_post.get("isNsfw", False),
+            is_spoiler=updated_post.get("isSpoiler", False),
+            flair=updated_post["flair"],
+            tags=updated_post["tags"],
+            awards=updated_post["awards"]
+        )
+        
+        return create_success_response(
+            data={"post": post_response.dict()},
+            message="Post updated successfully"
+        )
+        
+    except ValidationError as e:
+        logger.error(f"Update post validation error: {e}")
+        error_details = []
+        for error in e.errors():
+            field = " -> ".join(str(loc) for loc in error["loc"])
+            message = error["msg"]
+            error_details.append(f"{field}: {message}")
+        
+        return create_error_response(
+            400, 
+            "VALIDATION_ERROR", 
+            "Validation failed", 
+            {"validation_errors": error_details}
+        )
+    except Exception as e:
+        logger.error(f"Update post error: {e}")
+        return create_error_response(500, "INTERNAL_ERROR", "Update post failed")
+
+async def handle_delete_post(event: Dict[str, Any]) -> Dict[str, Any]:
+    """Handle delete post request."""
+    try:
+        # Check authentication
+        auth_error = require_authentication(event)
+        if auth_error:
+            return auth_error
+        
+        # Extract post ID from path
+        path = event.get("path", "")
+        post_id = path.split("/")[-1]
+        
+        if not post_id or post_id == "posts":
+            return create_error_response(400, "INVALID_POST_ID", "Post ID is required")
+        
+        user_id = get_user_id_from_event(event)
+        
+        # Get existing post
+        response = posts_table.get_item(Key={"postId": post_id})
+        
+        if "Item" not in response:
+            return create_error_response(404, "POST_NOT_FOUND", "Post not found")
+        
+        post = response["Item"]
+        
+        # Check if user is the author
+        if post["authorId"] != user_id:
+            return create_error_response(403, "ACCESS_DENIED", "Only the author can delete this post")
+        
+        # Soft delete post
+        posts_table.update_item(
+            Key={"postId": post_id},
+            UpdateExpression="SET isDeleted = :isDeleted, updatedAt = :updatedAt",
+            ExpressionAttributeValues={
+                ":isDeleted": True,
+                ":updatedAt": datetime.now(timezone.utc).isoformat()
+            }
+        )
+        
+        return create_success_response(message="Post deleted successfully")
+        
+    except Exception as e:
+        logger.error(f"Delete post error: {e}")
+        return create_error_response(500, "INTERNAL_ERROR", "Delete post failed")
+
+async def handle_vote_post(event: Dict[str, Any]) -> Dict[str, Any]:
+    """Handle vote post request."""
+    try:
+        # Check authentication
+        auth_error = require_authentication(event)
+        if auth_error:
+            return auth_error
+        
+        # Extract post ID from path
+        path = event.get("path", "")
+        post_id = path.split("/")[-2]  # /posts/{post_id}/vote
+        
+        if not post_id or post_id == "posts":
+            return create_error_response(400, "INVALID_POST_ID", "Post ID is required")
+        
+        body = json.loads(event.get("body", "{}"))
+        request = VoteRequest(**body)
+        user_id = get_user_id_from_event(event)
+        
+        # Get existing post
+        response = posts_table.get_item(Key={"postId": post_id})
+        
+        if "Item" not in response:
+            return create_error_response(404, "POST_NOT_FOUND", "Post not found")
+        
+        post = response["Item"]
+        
+        # For now, just update the vote counts (simplified implementation)
+        # In a real implementation, you would track individual user votes
+        current_upvotes = post.get("upvotes", 0)
+        current_downvotes = post.get("downvotes", 0)
+        
+        if request.vote_type == VoteType.UPVOTE:
+            new_upvotes = current_upvotes + 1
+            new_downvotes = current_downvotes
+        elif request.vote_type == VoteType.DOWNVOTE:
+            new_upvotes = current_upvotes
+            new_downvotes = current_downvotes + 1
+        else:  # REMOVE
+            new_upvotes = max(0, current_upvotes - 1)
+            new_downvotes = max(0, current_downvotes - 1)
+        
+        new_score = new_upvotes - new_downvotes
+        
+        # Update post vote counts
+        posts_table.update_item(
+            Key={"postId": post_id},
+            UpdateExpression="SET upvotes = :upvotes, downvotes = :downvotes, score = :score, updatedAt = :updatedAt",
+            ExpressionAttributeValues={
+                ":upvotes": new_upvotes,
+                ":downvotes": new_downvotes,
+                ":score": new_score,
+                ":updatedAt": datetime.now(timezone.utc).isoformat()
+            }
+        )
+        
+        return create_success_response(
+            data={
+                "stats": {
+                    "post_id": post_id,
+                    "score": new_score,
+                    "upvotes": new_upvotes,
+                    "downvotes": new_downvotes,
+                    "comment_count": post.get("commentCount", 0),
+                    "view_count": post.get("viewCount", 0)
+                }
+            },
+            message="Vote recorded successfully"
+        )
+        
+    except ValidationError as e:
+        logger.error(f"Vote post validation error: {e}")
+        error_details = []
+        for error in e.errors():
+            field = " -> ".join(str(loc) for loc in error["loc"])
+            message = error["msg"]
+            error_details.append(f"{field}: {message}")
+        
+        return create_error_response(
+            400, 
+            "VALIDATION_ERROR", 
+            "Validation failed", 
+            {"validation_errors": error_details}
+        )
+    except Exception as e:
+        logger.error(f"Vote post error: {e}")
+        return create_error_response(500, "INTERNAL_ERROR", "Vote post failed")
+
 # ============================================================================
 # MAIN HANDLER
 # ============================================================================
@@ -710,6 +1151,14 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             return asyncio.run(handle_create_post(event))
         elif resource == "/posts" and method == "GET":
             return asyncio.run(handle_get_posts(event))
+        elif resource.startswith("/posts/") and method == "GET":
+            return asyncio.run(handle_get_post_by_id(event))
+        elif resource.startswith("/posts/") and method == "PUT":
+            return asyncio.run(handle_update_post(event))
+        elif resource.startswith("/posts/") and method == "DELETE":
+            return asyncio.run(handle_delete_post(event))
+        elif resource.endswith("/vote") and method == "POST":
+            return asyncio.run(handle_vote_post(event))
         else:
             return create_error_response(404, "NOT_FOUND", "Endpoint not found")
 
