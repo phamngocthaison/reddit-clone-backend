@@ -35,7 +35,7 @@ subreddits_table = dynamodb.Table(SUBREDDITS_TABLE) if SUBREDDITS_TABLE else Non
 # AUTHENTICATION MODELS
 # ============================================================================
 
-from pydantic import BaseModel, EmailStr, validator
+from pydantic import BaseModel, EmailStr, validator, Field, ValidationError
 from typing import Optional, List
 from enum import Enum
 import uuid
@@ -81,9 +81,9 @@ class PostType(str, Enum):
     POLL = "poll"
 
 class PostBase(BaseModel):
-    title: str
+    title: str = Field(..., min_length=1, description="Post title cannot be empty")
     content: Optional[str] = None
-    subreddit_id: str
+    subreddit_id: str = Field(..., min_length=1, description="Subreddit ID cannot be empty")
     post_type: PostType = PostType.TEXT
     url: Optional[str] = None
     media_urls: Optional[List[str]] = []
@@ -183,16 +183,21 @@ def create_success_response(data: Any = None, message: str = "Success") -> Dict[
         "body": json.dumps(response)
     }
 
-def create_error_response(status_code: int, error_code: str, message: str) -> Dict[str, Any]:
+def create_error_response(status_code: int, error_code: str, message: str, additional_data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """Create an error response."""
+    error_info = {
+        "code": error_code,
+        "message": message
+    }
+    
+    if additional_data:
+        error_info.update(additional_data)
+    
     response = {
         "success": False,
         "message": message,
         "data": None,
-        "error": {
-            "code": error_code,
-            "message": message
-        }
+        "error": error_info
     }
     return {
         "statusCode": status_code,
@@ -473,6 +478,21 @@ async def handle_create_post(event: Dict[str, Any]) -> Dict[str, Any]:
             message="Post created successfully"
         )
         
+    except ValidationError as e:
+        logger.error(f"Create post validation error: {e}")
+        # Extract validation error details
+        error_details = []
+        for error in e.errors():
+            field = " -> ".join(str(loc) for loc in error["loc"])
+            message = error["msg"]
+            error_details.append(f"{field}: {message}")
+        
+        return create_error_response(
+            400, 
+            "VALIDATION_ERROR", 
+            "Validation failed", 
+            {"validation_errors": error_details}
+        )
     except Exception as e:
         logger.error(f"Create post error: {e}")
         return create_error_response(500, "INTERNAL_ERROR", "Create post failed")
