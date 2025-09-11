@@ -89,6 +89,13 @@ class GetPostsRequest(BaseModel):
 class VotePostRequest(BaseModel):
     vote_type: Literal["upvote", "downvote", "remove"] = Field(..., description="Type of vote")
 
+class GetSubredditPostsRequest(BaseModel):
+    limit: int = Field(20, ge=1, le=100, description="Number of posts to retrieve")
+    offset: int = Field(0, ge=0, description="Offset for pagination")
+    sort: Literal["new", "hot", "top"] = Field("new", description="Sort order")
+    post_type: Optional[PostType] = Field(None, description="Filter by post type")
+    is_nsfw: Optional[bool] = Field(None, description="Filter by NSFW flag")
+
 # Response Models
 class PostResponse(BaseModel):
     post_id: str = Field(..., description="Post ID")
