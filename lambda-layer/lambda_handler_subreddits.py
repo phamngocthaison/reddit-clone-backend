@@ -5,7 +5,7 @@ import json
 import logging
 from typing import Any, Dict
 
-from subreddit_models import (
+from lambda.subreddit_models import (
     CreateSubredditRequest,
     UpdateSubredditRequest,
     JoinSubredditRequest,
@@ -14,7 +14,7 @@ from subreddit_models import (
     ModeratorRequest,
     BanUserRequest
 )
-from subreddit_service import SubredditService
+from lambda.subreddit_service import SubredditService
 
 # Configure logging
 logger = logging.getLogger()
