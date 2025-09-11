@@ -3,9 +3,15 @@
 import asyncio
 import json
 import logging
+import sys
+import os
 from typing import Any, Dict
 
-from lambda.subreddit_models import (
+# Add python directory to path for Lambda environment
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'python'))
+sys.path.insert(0, os.path.dirname(__file__))
+
+from lambda_code.subreddit_models import (
     CreateSubredditRequest,
     UpdateSubredditRequest,
     JoinSubredditRequest,
@@ -14,7 +20,7 @@ from lambda.subreddit_models import (
     ModeratorRequest,
     BanUserRequest
 )
-from lambda.subreddit_service import SubredditService
+from lambda_code.subreddit_service import SubredditService
 
 # Configure logging
 logger = logging.getLogger()
