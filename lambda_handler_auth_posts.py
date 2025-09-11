@@ -5,6 +5,7 @@ Lambda handler for Authentication + Posts functionality
 import json
 import logging
 import os
+import sys
 import boto3
 import asyncio
 import base64
@@ -13,6 +14,9 @@ import hashlib
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional
 from botocore.exceptions import ClientError
+
+# Add python directory to path for Lambda environment
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'python'))
 
 # Configure logging
 logger = logging.getLogger()
@@ -432,8 +436,8 @@ async def handle_login(event: Dict[str, Any]) -> Dict[str, Any]:
             )
             
         except ClientError as e:
-            if e.response['Error']['Code'] == 'NotAuthorizedException':
-                return create_error_response(401, "INVALID_CREDENTIALS", "Invalid username or password")
+            if e.response['Error']['Code'] in ['NotAuthorizedException', 'UserNotFoundException']:
+                return create_error_response(400, "INVALID_CREDENTIALS", "Invalid username or password")
             else:
                 raise e
                 

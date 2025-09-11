@@ -54,7 +54,13 @@ class CommentBase(BaseModel):
 
 class CreateCommentRequest(CommentBase):
     """Request model for creating a comment"""
-    post_id: str = Field(..., description="Post ID this comment belongs to")
+    post_id: str = Field(..., min_length=1, description="Post ID this comment belongs to")
+    
+    @validator('post_id')
+    def validate_post_id(cls, v):
+        if not v or not v.strip():
+            raise ValueError('Post ID cannot be empty')
+        return v.strip()
     
     class Config:
         schema_extra = {

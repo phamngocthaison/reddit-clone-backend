@@ -1,5 +1,6 @@
 import json
 import os
+import sys
 import asyncio
 import logging
 import base64
@@ -8,6 +9,9 @@ import hashlib
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional, List
 from enum import Enum
+
+# Add python directory to path for Lambda environment
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'python'))
 
 import boto3
 from botocore.exceptions import ClientError

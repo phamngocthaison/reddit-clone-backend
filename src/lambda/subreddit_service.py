@@ -2,9 +2,11 @@
 
 import boto3
 import uuid
+import json
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 from botocore.exceptions import ClientError
+from decimal import Decimal
 
 from subreddit_models import (
     CreateSubredditRequest,
@@ -19,6 +21,16 @@ from subreddit_models import (
     BanUserRequest,
     SubredditStatsResponse
 )
+
+def convert_decimals(obj):
+    """Convert Decimal objects to int/float for JSON serialization."""
+    if isinstance(obj, Decimal):
+        return int(obj) if obj % 1 == 0 else float(obj)
+    elif isinstance(obj, dict):
+        return {k: convert_decimals(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [convert_decimals(item) for item in obj]
+    return obj
 
 
 class SubredditService:
@@ -434,6 +446,9 @@ class SubredditService:
                 # Sort by ratio of upvotes to downvotes
                 posts.sort(key=lambda x: x.get('upvotes', 0) / max(x.get('downvotes', 1), 1), reverse=True)
 
+            # Convert Decimal objects to int/float for JSON serialization
+            posts = convert_decimals(posts)
+            
             return {
                 'posts': posts,
                 'count': len(posts),
