@@ -1,219 +1,262 @@
-# Reddit Clone Backend - Lambda Architecture
+# Lambda Architecture Documentation
 
 ## Overview
 
-Reddit Clone Backend sử dụng kiến trúc serverless với 2 Lambda functions riêng biệt để xử lý các chức năng khác nhau, giúp dễ dàng quản lý, scale và maintain.
+The Reddit Clone Backend uses a **separated Lambda architecture** where each major functionality is handled by a dedicated Lambda function. This approach provides better scalability, maintainability, and allows for independent deployment and scaling of different features.
 
 ## Architecture Diagram
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    API Gateway                              │
-│  https://ugn2h0yxwf.execute-api.ap-southeast-1.amazonaws.com │
-└─────────────────────┬───────────────────────────────────────┘
-                      │
-        ┌─────────────┼─────────────┐
-        │             │             │
-        ▼             ▼             ▼
-┌─────────────┐ ┌─────────────┐ ┌─────────────┐
-│ AuthLambda  │ │CommentsLambda│ │   DynamoDB  │
-│             │ │             │ │             │
-│ • Auth APIs │ │ • Comments  │ │ • Users     │
-│ • Posts APIs│ │   APIs      │ │ • Posts     │
-│             │ │             │ │ • Comments  │
-└─────────────┘ └─────────────┘ └─────────────┘
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   API Gateway   │    │   API Gateway   │    │   API Gateway   │
+│   (REST API)    │    │   (REST API)    │    │   (REST API)    │
+└─────────┬───────┘    └─────────┬───────┘    └─────────┬───────┘
+          │                      │                      │
+          │                      │                      │
+┌─────────▼───────┐    ┌─────────▼───────┐    ┌─────────▼───────┐
+│  AuthLambda     │    │ CommentsLambda  │    │SubredditsLambda │
+│  (Auth + Posts) │    │   (Comments)    │    │  (Subreddits)   │
+└─────────┬───────┘    └─────────┬───────┘    └─────────┬───────┘
+          │                      │                      │
+          │                      │                      │
+┌─────────▼───────┐    ┌─────────▼───────┐    ┌─────────▼───────┐
+│  FeedsLambda    │    │UserProfileLambda│    │   DynamoDB      │
+│  (News Feeds)   │    │ (User Profiles) │    │   (Database)    │
+└─────────┬───────┘    └─────────┬───────┘    └─────────────────┘
+          │                      │
+          └──────────────────────┘
 ```
 
 ## Lambda Functions
 
 ### 1. AuthLambda
-**Handler**: `lambda_handler_auth_posts.handler`  
-**Function Name**: `RedditCloneStack-AuthLambda6BB8C88C-5Eb0T2wKncvH`
+**Handler**: `lambda_handler_auth_posts.py`  
+**Purpose**: Handles user authentication and posts management  
+**APIs**:
+- `POST /auth/register` - User registration
+- `POST /auth/login` - User login (email/username)
+- `POST /auth/logout` - User logout
+- `POST /auth/forgot-password` - Password reset request
+- `POST /auth/reset-password` - Password reset with code
+- `POST /posts/create` - Create new post
+- `GET /posts` - Get posts with filtering
+- `GET /posts/{post_id}` - Get post by ID
+- `PUT /posts/{post_id}` - Update post
+- `DELETE /posts/{post_id}` - Delete post
+- `POST /posts/{post_id}/vote` - Vote on post
 
-#### Responsibilities:
-- **Authentication APIs**:
-  - `POST /auth/register` - User registration
-  - `POST /auth/login` - User login
-  - `POST /auth/logout` - User logout
-  - `POST /auth/forgot-password` - Password reset request
-  - `POST /auth/reset-password` - Password reset confirmation
-
-- **Posts APIs**:
-  - `POST /posts/create` - Create new post
-  - `GET /posts` - Get posts list
-  - `GET /posts/{post_id}` - Get post by ID
-  - `PUT /posts/{post_id}` - Update post
-  - `DELETE /posts/{post_id}` - Delete post
-  - `POST /posts/{post_id}/vote` - Vote on post
-
-#### Dependencies:
-- DynamoDB Tables: `users`, `posts`, `subreddits`, `comments`
-- Cognito User Pool
-- IAM permissions for DynamoDB and Cognito
+**Dependencies**:
+- DynamoDB: Users, Posts tables
+- Cognito: User authentication
+- IAM: Read/write permissions
 
 ### 2. CommentsLambda
-**Handler**: `lambda_handler_comments.handler`  
-**Function Name**: `RedditCloneStack-CommentsLambdaF3F5A903-eNCdCVXj6TiC`
+**Handler**: `lambda_handler_comments.py`  
+**Purpose**: Handles comments management  
+**APIs**:
+- `POST /comments/create` - Create new comment
+- `GET /comments` - Get comments with filtering
+- `GET /posts/{post_id}/comments` - Get comments for post
+- `GET /comments/{comment_id}` - Get comment by ID
+- `PUT /comments/{comment_id}` - Update comment
+- `DELETE /comments/{comment_id}` - Delete comment
+- `POST /comments/{comment_id}/vote` - Vote on comment
 
-#### Responsibilities:
-- **Comments APIs**:
-  - `POST /comments/create` - Create new comment
-  - `GET /comments` - Get comments list
-  - `GET /comments/{comment_id}` - Get comment by ID
-  - `PUT /comments/{comment_id}` - Update comment
-  - `DELETE /comments/{comment_id}` - Delete comment
-  - `POST /comments/{comment_id}/vote` - Vote on comment
+**Dependencies**:
+- DynamoDB: Comments table
+- IAM: Read/write permissions
 
-#### Dependencies:
-- DynamoDB Tables: `users`, `posts`, `comments`
-- IAM permissions for DynamoDB
+### 3. SubredditsLambda
+**Handler**: `lambda_handler_subreddits.py`  
+**Purpose**: Handles subreddit management  
+**APIs**:
+- `POST /subreddits/create` - Create new subreddit
+- `GET /subreddits` - Get subreddits with filtering
+- `GET /subreddits/{subreddit_id}` - Get subreddit by ID
+- `GET /subreddits/name/{name}` - Get subreddit by name
+- `PUT /subreddits/{subreddit_id}` - Update subreddit
+- `DELETE /subreddits/{subreddit_id}` - Delete subreddit
+- `POST /subreddits/{subreddit_id}/join` - Join subreddit
+- `POST /subreddits/{subreddit_id}/leave` - Leave subreddit
+- `GET /subreddits/{subreddit_id}/posts` - Get subreddit posts
 
-## Data Flow
+**Dependencies**:
+- DynamoDB: Subreddits, Subscriptions tables
+- IAM: Read/write permissions
 
-### Authentication Flow
-1. User sends auth request to API Gateway
-2. API Gateway routes to AuthLambda
-3. AuthLambda validates credentials with Cognito
-4. AuthLambda returns JWT tokens
+### 4. FeedsLambda
+**Handler**: `lambda_handler_feeds.py`  
+**Purpose**: Handles personalized news feeds  
+**APIs**:
+- `GET /feeds` - Get personalized news feed
+- `POST /feeds/refresh` - Refresh user feed
+- `GET /feeds/stats` - Get feed statistics
 
-### Posts Flow
-1. User sends posts request to API Gateway
-2. API Gateway routes to AuthLambda
-3. AuthLambda processes posts CRUD operations
-4. AuthLambda interacts with DynamoDB
-5. AuthLambda returns response
+**Dependencies**:
+- DynamoDB: Feeds, Subscriptions, Posts tables
+- IAM: Read permissions
 
-### Comments Flow
-1. User sends comments request to API Gateway
-2. API Gateway routes to CommentsLambda
-3. CommentsLambda processes comments CRUD operations
-4. CommentsLambda interacts with DynamoDB
-5. CommentsLambda returns response
+### 5. UserProfileLambda
+**Handler**: `lambda_handler_user_profile.py`  
+**Purpose**: Handles user profile management  
+**APIs**:
+- `GET /auth/me` - Get current user profile
+- `PUT /auth/me` - Update current user profile
+- `DELETE /auth/me` - Delete user account
+- `PUT /auth/change-password` - Change password
+- `GET /users/{user_id}` - Get public user profile
+- `GET /users/{user_id}/posts` - Get user posts
+- `GET /users/{user_id}/comments` - Get user comments
 
-## Benefits of Separated Architecture
+**Dependencies**:
+- DynamoDB: Users, Posts, Comments tables
+- Cognito: User authentication
+- IAM: Read/write permissions
 
-### 1. **Scalability**
-- Mỗi Lambda có thể scale độc lập
-- Comments có thể scale cao hơn khi có nhiều traffic
-- Auth có thể scale thấp hơn vì ít thay đổi
+## Database Schema
 
-### 2. **Maintainability**
-- Code được tách biệt rõ ràng
-- Dễ debug và fix issues
-- Team có thể work parallel trên các features khác nhau
+### DynamoDB Tables
 
-### 3. **Performance**
-- Cold start time ngắn hơn cho từng function
-- Memory usage tối ưu cho từng use case
-- Timeout settings phù hợp với từng function
+#### Users Table (`reddit-clone-users`)
+- **Primary Key**: `userId` (String)
+- **GSI**: `EmailIndex` - Partition Key: `email` (String)
+- **Fields**: userId, email, username, displayName, bio, avatar, karma, postCount, commentCount, isPublic, showEmail, createdAt, updatedAt, isActive
 
-### 4. **Security**
-- IAM permissions được tách biệt
-- Comments Lambda không cần Cognito permissions
-- Auth Lambda có full permissions
+#### Posts Table (`reddit-clone-posts`)
+- **Primary Key**: `postId` (String)
+- **GSI**: `UserIndex` - Partition Key: `userId`, Sort Key: `createdAt`
+- **GSI**: `SubredditIndex` - Partition Key: `subredditId`, Sort Key: `createdAt`
+- **Fields**: postId, userId, subredditId, title, content, postType, url, mediaUrls, upvotes, downvotes, score, commentCount, createdAt, updatedAt, isDeleted
 
-### 5. **Cost Optimization**
-- Pay only for what you use
-- Comments Lambda có thể có higher concurrency
-- Auth Lambda có thể có lower concurrency
+#### Comments Table (`reddit-clone-comments`)
+- **Primary Key**: `commentId` (String)
+- **GSI**: `PostIndex` - Partition Key: `postId`, Sort Key: `createdAt`
+- **GSI**: `UserIndex` - Partition Key: `userId`, Sort Key: `createdAt`
+- **GSI**: `ParentIndex` - Partition Key: `parentCommentId`, Sort Key: `createdAt`
+- **Fields**: commentId, postId, userId, parentCommentId, content, upvotes, downvotes, score, replyCount, createdAt, updatedAt, isDeleted
 
-## Environment Variables
+#### Subreddits Table (`reddit-clone-subreddits`)
+- **Primary Key**: `subredditId` (String)
+- **GSI**: `NameIndex` - Partition Key: `name` (String)
+- **Fields**: subredditId, name, displayName, description, ownerId, moderators, subscriberCount, postCount, rules, isPrivate, isNsfw, isRestricted, primaryColor, secondaryColor, language, country, bannerImage, iconImage, createdAt, updatedAt
 
-### AuthLambda
-```bash
-USER_POOL_ID=ap-southeast-1_tcwIJSUFS
-CLIENT_ID=1et6o5qdvfgcrj18qqbglkpkm1
-USERS_TABLE=reddit-clone-users
-POSTS_TABLE=reddit-clone-posts
-SUBREDDITS_TABLE=reddit-clone-subreddits
-COMMENTS_TABLE=reddit-clone-comments
-REGION=ap-southeast-1
+#### Subscriptions Table (`reddit-clone-subscriptions`)
+- **Primary Key**: `subscriptionId` (String)
+- **GSI**: `UserIndex` - Partition Key: `userId`, Sort Key: `subredditId`
+- **GSI**: `SubredditIndex` - Partition Key: `subredditId`, Sort Key: `userId`
+- **Fields**: subscriptionId, userId, subredditId, role, joinedAt, isActive
+
+#### Feeds Table (`reddit-clone-feeds`)
+- **Primary Key**: `feedId` (String)
+- **GSI**: `UserIndex` - Partition Key: `userId`, Sort Key: `createdAt`
+- **Fields**: feedId, userId, postId, subredditId, authorId, postTitle, postContent, postImageUrl, subredditName, authorName, upvotes, downvotes, commentsCount, isPinned, isNSFW, isSpoiler, tags, createdAt, postScore
+
+## Authentication & Authorization
+
+### JWT Token Authentication
+- **Provider**: AWS Cognito
+- **Token Types**: Access Token, Refresh Token, ID Token
+- **Expiration**: Access tokens expire after 1 hour
+- **Validation**: Each Lambda validates JWT tokens independently
+
+### Hybrid Authentication (Testing)
+- **JWT Tokens**: Production authentication method
+- **X-User-ID Header**: Testing/development method
+- **Fallback**: If JWT validation fails, check X-User-ID header
+
+### Authorization Levels
+1. **Public**: No authentication required
+2. **User**: Requires valid user authentication
+3. **Owner**: Requires ownership of the resource
+4. **Moderator**: Requires moderator role in subreddit
+5. **Admin**: Requires admin privileges
+
+## Error Handling
+
+### Common Error Codes
+- `UNAUTHORIZED` - Invalid or missing authentication
+- `FORBIDDEN` - Insufficient permissions
+- `NOT_FOUND` - Resource not found
+- `VALIDATION_ERROR` - Input validation failed
+- `INTERNAL_ERROR` - Server error
+
+### Error Response Format
+```json
+{
+  "success": false,
+  "message": "Error description",
+  "error": {
+    "code": "ERROR_CODE",
+    "message": "Detailed error message"
+  }
+}
 ```
 
-### CommentsLambda
-```bash
-USER_POOL_ID=ap-southeast-1_tcwIJSUFS
-CLIENT_ID=1et6o5qdvfgcrj18qqbglkpkm1
-USERS_TABLE=reddit-clone-users
-POSTS_TABLE=reddit-clone-posts
-SUBREDDITS_TABLE=reddit-clone-subreddits
-COMMENTS_TABLE=reddit-clone-comments
-REGION=ap-southeast-1
-```
+## Performance Considerations
 
-## Deployment
+### Cold Start Optimization
+- **Memory Allocation**: 512MB for all functions
+- **Timeout**: 30 seconds for all functions
+- **Package Size**: Minimized dependencies in lambda-layer.zip
+- **Connection Pooling**: Reuse DynamoDB connections
 
-### CDK Stack
-```typescript
-// Infrastructure defined in reddit_clone_stack.py
-const authLambda = new lambda.Function(this, 'AuthLambda', {
-  handler: 'lambda_handler_auth_posts.handler',
-  // ... configuration
-});
+### Caching Strategy
+- **Feed Generation**: Cache generated feeds in DynamoDB
+- **User Profiles**: Cache frequently accessed profiles
+- **Subreddit Data**: Cache subreddit metadata
 
-const commentsLambda = new lambda.Function(this, 'CommentsLambda', {
-  handler: 'lambda_handler_comments.handler',
-  // ... configuration
-});
-```
-
-### API Gateway Integration
-```typescript
-// Auth endpoints
-authResource.addMethod('POST', new apigateway.LambdaIntegration(authLambda));
-
-// Comments endpoints  
-commentsResource.addMethod('POST', new apigateway.LambdaIntegration(commentsLambda));
-```
+### Scaling
+- **Concurrent Executions**: Auto-scaling based on demand
+- **Database**: DynamoDB on-demand billing
+- **API Gateway**: Automatic scaling
 
 ## Monitoring & Logging
 
-### CloudWatch Logs
-- **AuthLambda**: `/aws/lambda/RedditCloneStack-AuthLambda6BB8C88C-5Eb0T2wKncvH`
-- **CommentsLambda**: `/aws/lambda/RedditCloneStack-CommentsLambdaF3F5A903-eNCdCVXj6TiC`
+### CloudWatch Integration
+- **Logs**: All Lambda functions log to CloudWatch
+- **Metrics**: Custom metrics for API performance
+- **Alarms**: Set up alarms for error rates and latency
 
-### Metrics
-- Invocation count
-- Duration
-- Error rate
-- Throttle count
-- Memory usage
+### Logging Levels
+- **INFO**: Normal operation logs
+- **WARN**: Warning conditions
+- **ERROR**: Error conditions
+- **DEBUG**: Detailed debugging information
+
+## Deployment
+
+### CDK Infrastructure
+- **Stack**: `RedditCloneStack`
+- **Resources**: Lambda functions, API Gateway, DynamoDB tables, IAM roles
+- **Environment**: Production and development environments
+
+### Lambda Deployment
+- **Package**: `lambda-layer.zip` contains all dependencies
+- **Update**: Use AWS CLI to update function code
+- **Rollback**: Maintain previous versions for rollback
+
+## Security
+
+### IAM Roles
+- **Least Privilege**: Each Lambda has minimal required permissions
+- **Resource-based**: Permissions scoped to specific resources
+- **Rotation**: Regular key rotation for enhanced security
+
+### Data Protection
+- **Encryption**: All data encrypted at rest and in transit
+- **PII Handling**: Sensitive data properly handled and protected
+- **Access Logging**: All API access logged for audit
 
 ## Future Enhancements
 
-### 1. **Additional Lambda Functions**
-- **ModerationLambda**: Content moderation
-- **NotificationLambda**: Push notifications
-- **SearchLambda**: Search functionality
+### Planned Features
+- **Real-time Notifications**: WebSocket support
+- **File Upload**: S3 integration for media files
+- **Search**: Elasticsearch integration
+- **Analytics**: Advanced analytics and reporting
 
-### 2. **Event-Driven Architecture**
-- SNS/SQS for async processing
-- EventBridge for event routing
-- Step Functions for complex workflows
-
-### 3. **Caching Layer**
-- ElastiCache for frequently accessed data
-- API Gateway caching
-- Lambda response caching
-
-## Troubleshooting
-
-### Common Issues
-
-1. **Cold Start**: Use provisioned concurrency for critical functions
-2. **Timeout**: Adjust timeout settings based on function complexity
-3. **Memory**: Monitor memory usage and adjust allocation
-4. **Permissions**: Ensure IAM roles have correct permissions
-
-### Debug Commands
-
-```bash
-# Check Lambda function status
-aws lambda get-function --function-name RedditCloneStack-AuthLambda6BB8C88C-5Eb0T2wKncvH
-
-# View CloudWatch logs
-aws logs describe-log-groups --log-group-name-prefix "/aws/lambda/RedditCloneStack"
-
-# Test Lambda function
-aws lambda invoke --function-name RedditCloneStack-AuthLambda6BB8C88C-5Eb0T2wKncvH response.json
-```
+### Architecture Improvements
+- **Event-driven**: SNS/SQS for async processing
+- **Caching**: Redis/ElastiCache for better performance
+- **CDN**: CloudFront for static content delivery
+- **Microservices**: Further decomposition of services

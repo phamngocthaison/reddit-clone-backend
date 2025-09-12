@@ -1,0 +1,85 @@
+{
+  "total_tests": 11,
+  "passed_tests": 0,
+  "failed_tests": 11,
+  "success_rate": 0.0,
+  "results": [
+    {
+      "test_name": "GET /auth/me - Success",
+      "success": false,
+      "message": "HTTP 502: {\"message\": \"Internal server error\"}",
+      "timestamp": "2025-09-11T16:27:21.028136",
+      "response_data": null
+    },
+    {
+      "test_name": "GET /auth/me - Unauthorized",
+      "success": false,
+      "message": "Expected 401, got 502: {\"message\": \"Internal server error\"}",
+      "timestamp": "2025-09-11T16:27:21.868604",
+      "response_data": null
+    },
+    {
+      "test_name": "PUT /auth/me - Success",
+      "success": false,
+      "message": "HTTP 502: {\"message\": \"Internal server error\"}",
+      "timestamp": "2025-09-11T16:27:22.668455",
+      "response_data": null
+    },
+    {
+      "test_name": "PUT /auth/me - Validation Error",
+      "success": false,
+      "message": "Expected 400, got 502: {\"message\": \"Internal server error\"}",
+      "timestamp": "2025-09-11T16:27:23.463380",
+      "response_data": null
+    },
+    {
+      "test_name": "GET /users/{user_id} - Success",
+      "success": false,
+      "message": "HTTP 502: {\"message\": \"Internal server error\"}",
+      "timestamp": "2025-09-11T16:27:24.276814",
+      "response_data": null
+    },
+    {
+      "test_name": "GET /users/{user_id} - Not Found",
+      "success": false,
+      "message": "Expected 404, got 502: {\"message\": \"Internal server error\"}",
+      "timestamp": "2025-09-11T16:27:25.095701",
+      "response_data": null
+    },
+    {
+      "test_name": "PUT /auth/change-password - Success",
+      "success": false,
+      "message": "HTTP 502: {\"message\": \"Internal server error\"}",
+      "timestamp": "2025-09-11T16:27:25.954290",
+      "response_data": null
+    },
+    {
+      "test_name": "PUT /auth/change-password - Validation Error",
+      "success": false,
+      "message": "Expected 400, got 502: {\"message\": \"Internal server error\"}",
+      "timestamp": "2025-09-11T16:27:26.639157",
+      "response_data": null
+    },
+    {
+      "test_name": "GET /users/{user_id}/posts - Success",
+      "success": false,
+      "message": "HTTP 502: {\"message\": \"Internal server error\"}",
+      "timestamp": "2025-09-11T16:27:27.472526",
+      "response_data": null
+    },
+    {
+      "test_name": "GET /users/{user_id}/comments - Success",
+      "success": false,
+      "message": "HTTP 502: {\"message\": \"Internal server error\"}",
+      "timestamp": "2025-09-11T16:27:28.302037",
+      "response_data": null
+    },
+    {
+      "test_name": "DELETE /auth/me - Validation Error",
+      "success": false,
+      "message": "Expected 400, got 502: {\"message\": \"Internal server error\"}",
+      "timestamp": "2025-09-11T16:27:29.003316",
+      "response_data": null
+    }
+  ]
+}

@@ -3,10 +3,15 @@
 import boto3
 import uuid
 import json
+import logging
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 from botocore.exceptions import ClientError
 from decimal import Decimal
+
+# Configure logger
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 from subreddit_models import (
     CreateSubredditRequest,
@@ -584,3 +589,137 @@ class SubredditService:
             is_subscribed=is_subscribed,
             user_role=user_role
         )
+
+    async def get_user_subreddits(self, user_id: str, limit: int = 20, offset: int = 0, sort: str = 'new') -> Dict[str, Any]:
+        """Get user's subscribed subreddits."""
+        try:
+            # Get user's subscriptions
+            subscriptions = self._get_user_subscriptions(user_id)
+            logger.info(f"Subscriptions for user {user_id}: {subscriptions}")
+            
+            if not subscriptions:
+                return {
+                    "subreddits": [],
+                    "pagination": {
+                        "limit": limit,
+                        "offset": offset,
+                        "total": 0,
+                        "has_more": False,
+                        "next_offset": None
+                    }
+                }
+
+            # Get subreddit IDs
+            subreddit_ids = [sub['subredditId'] for sub in subscriptions]
+            
+            # Get subreddit details
+            subreddits = []
+            for subreddit_id in subreddit_ids:
+                try:
+                    subreddit = self.get_subreddit(subreddit_id)
+                    # Find subscription details
+                    subscription = next((s for s in subscriptions if s['subredditId'] == subreddit_id), None)
+                    # Update the subreddit with subscription info
+                    subreddit.is_subscribed = True
+                    subreddit.user_role = subscription.get('role', 'subscriber') if subscription else None
+                    subreddits.append(subreddit)
+                except Exception as e:
+                    logger.warning(f"Failed to get subreddit {subreddit_id}: {e}")
+                    continue
+
+            # Sort subreddits
+            if sort == 'name':
+                subreddits.sort(key=lambda x: x.name.lower())
+            elif sort == 'old':
+                subreddits.sort(key=lambda x: x.created_at)
+            else:  # 'new' or default
+                subreddits.sort(key=lambda x: x.created_at, reverse=True)
+
+            # Apply pagination
+            total = len(subreddits)
+            paginated_subreddits = subreddits[offset:offset + limit]
+            has_more = offset + limit < total
+            next_offset = offset + limit if has_more else None
+
+            # Convert subreddits to dict with proper serialization
+            subreddit_dicts = []
+            for sub in paginated_subreddits:
+                try:
+                    sub_dict = sub.dict()
+                    logger.info(f"Subreddit dict: {sub_dict}")
+                    subreddit_dicts.append(sub_dict)
+                except Exception as e:
+                    logger.error(f"Error serializing subreddit {sub.subreddit_id}: {e}")
+                    continue
+            
+            return {
+                "subreddits": subreddit_dicts,
+                "pagination": {
+                    "limit": limit,
+                    "offset": offset,
+                    "total": total,
+                    "has_more": has_more,
+                    "next_offset": next_offset
+                }
+            }
+
+        except Exception as e:
+            logger.error(f"Error getting user subreddits: {e}")
+            raise e
+
+    async def check_user_membership(self, subreddit_id: str, user_id: str) -> Dict[str, Any]:
+        """Check if user is member of subreddit."""
+        try:
+            # Check if user is subscribed
+            subscription = self._get_user_subscription(user_id, subreddit_id)
+            
+            if subscription:
+                return {
+                    "is_member": True,
+                    "role": subscription.get('role', 'subscriber'),
+                    "joined_at": subscription.get('joinedAt'),
+                    "is_active": subscription.get('isActive', True)
+                }
+            
+            # Check if user is owner or moderator
+            try:
+                subreddit = self.get_subreddit(subreddit_id)
+                if subreddit.owner_id == user_id:
+                    return {
+                        "is_member": True,
+                        "role": "owner",
+                        "joined_at": subreddit.created_at,
+                        "is_active": True
+                    }
+                elif user_id in subreddit.moderators:
+                    return {
+                        "is_member": True,
+                        "role": "moderator",
+                        "joined_at": subreddit.created_at,  # Approximate
+                        "is_active": True
+                    }
+            except Exception:
+                pass
+            
+            return {
+                "is_member": False,
+                "role": None,
+                "joined_at": None,
+                "is_active": False
+            }
+
+        except Exception as e:
+            logger.error(f"Error checking user membership: {e}")
+            raise e
+
+    def _get_user_subscriptions(self, user_id: str) -> List[Dict[str, Any]]:
+        """Get all subscriptions for a user."""
+        try:
+            response = self.subscriptions_table.query(
+                IndexName='UserIndex',
+                KeyConditionExpression='userId = :user_id',
+                ExpressionAttributeValues={':user_id': user_id}
+            )
+            return response['Items']
+        except ClientError:
+            return []

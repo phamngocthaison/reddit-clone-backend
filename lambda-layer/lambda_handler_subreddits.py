@@ -11,6 +11,10 @@ from typing import Any, Dict
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'python'))
 sys.path.insert(0, os.path.dirname(__file__))
 
+# Configure logger
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+
 from subreddit_models import (
     CreateSubredditRequest,
     UpdateSubredditRequest,
@@ -21,6 +25,7 @@ from subreddit_models import (
     BanUserRequest
 )
 from subreddit_service import SubredditService
+from shared.utils import create_success_response
 
 # Configure logging
 logger = logging.getLogger()
@@ -421,6 +426,65 @@ async def handle_remove_moderator(event: Dict[str, Any]) -> Dict[str, Any]:
         return create_error_response(500, "INTERNAL_ERROR", "Failed to remove moderator")
 
 
+async def handle_get_user_subreddits(event: Dict[str, Any]) -> Dict[str, Any]:
+    """Handle GET /subreddits/user/{user_id} - Get user's subscribed subreddits."""
+    try:
+        user_id = event.get('pathParameters', {}).get('user_id')
+        if not user_id:
+            return create_error_response(400, "MISSING_USER_ID", "User ID is required")
+
+        # Get query parameters
+        query_params = event.get('queryStringParameters') or {}
+        limit = int(query_params.get('limit', 20))
+        offset = int(query_params.get('offset', 0))
+        sort = query_params.get('sort', 'new')
+
+        # Validate parameters
+        if limit < 1 or limit > 100:
+            return create_error_response(400, "INVALID_LIMIT", "Limit must be between 1 and 100")
+        if offset < 0:
+            return create_error_response(400, "INVALID_OFFSET", "Offset must be non-negative")
+        if sort not in ['new', 'old', 'name']:
+            return create_error_response(400, "INVALID_SORT", "Sort must be 'new', 'old', or 'name'")
+
+        subreddit_service = SubredditService()
+        result = await subreddit_service.get_user_subreddits(user_id, limit, offset, sort)
+
+        return create_success_response(
+            data=result,
+            message="User subreddits retrieved successfully"
+        )
+
+    except Exception as e:
+        logger.error(f"Error getting user subreddits: {str(e)}")
+        return create_error_response(500, "INTERNAL_ERROR", "Failed to retrieve user subreddits")
+
+
+async def handle_check_user_membership(event: Dict[str, Any]) -> Dict[str, Any]:
+    """Handle GET /subreddits/{subreddit_id}/members/{user_id} - Check if user is member of subreddit."""
+    try:
+        path_params = event.get('pathParameters', {})
+        subreddit_id = path_params.get('subreddit_id')
+        user_id = path_params.get('user_id')
+        
+        if not subreddit_id:
+            return create_error_response(400, "MISSING_SUBREDDIT_ID", "Subreddit ID is required")
+        if not user_id:
+            return create_error_response(400, "MISSING_USER_ID", "User ID is required")
+
+        subreddit_service = SubredditService()
+        result = await subreddit_service.check_user_membership(subreddit_id, user_id)
+
+        return create_success_response(
+            data=result,
+            message="User membership status retrieved successfully"
+        )
+
+    except Exception as e:
+        logger.error(f"Error checking user membership: {str(e)}")
+        return create_error_response(500, "INTERNAL_ERROR", "Failed to check user membership")
+
+
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     """Main Lambda handler for subreddit endpoints."""
     try:
@@ -455,6 +519,10 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             return asyncio.run(handle_add_moderator(event))
         elif resource == '/subreddits/{subreddit_id}/moderators/{user_id}' and method == 'DELETE':
             return asyncio.run(handle_remove_moderator(event))
+        elif resource == '/subreddits/user/{user_id}' and method == 'GET':
+            return asyncio.run(handle_get_user_subreddits(event))
+        elif resource == '/subreddits/{subreddit_id}/members/{user_id}' and method == 'GET':
+            return asyncio.run(handle_check_user_membership(event))
         else:
             return create_error_response(404, "NOT_FOUND", f"Method {method} not supported for resource {resource}")
             

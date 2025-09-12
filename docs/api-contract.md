@@ -7,11 +7,12 @@ Local Development: http://localhost:5000
 ```
 
 ## Architecture Overview
-API được chia thành 4 Lambda functions riêng biệt:
+API được chia thành 5 Lambda functions riêng biệt:
 - **AuthLambda**: Xử lý Authentication và Posts APIs
 - **CommentsLambda**: Xử lý Comments APIs
 - **SubredditsLambda**: Xử lý Subreddit APIs
 - **FeedsLambda**: Xử lý News Feed APIs
+- **UserProfileLambda**: Xử lý User Profile APIs
 
 ## Authentication
 API sử dụng JWT tokens cho authentication. Tất cả protected endpoints yêu cầu `Authorization` header:
@@ -1300,6 +1301,17 @@ curl -X POST https://ugn2h0yxwf.execute-api.ap-southeast-1.amazonaws.com/prod/au
 
 ## Changelog
 
+### v2.4.0 (2025-09-10)
+- **User Profile System**: Complete user profile management system
+- **Profile APIs**: GET/PUT/DELETE `/auth/me` for current user profile
+- **Public Profiles**: GET `/users/{user_id}` for public user profiles
+- **Password Management**: PUT `/auth/change-password` for password changes
+- **User Content**: GET `/users/{user_id}/posts` and `/users/{user_id}/comments`
+- **Account Management**: DELETE `/auth/me` for account deletion
+- **Database Schema**: Extended Users table with profile fields (displayName, bio, avatar, karma, etc.)
+- **New Lambda**: Added UserProfileLambda for profile-related operations
+- **Enhanced Security**: Profile privacy controls and validation
+
 ### v2.3.0 (2025-09-10)
 - **Fixed Comment API**: Resolved issues with GET comments endpoints
 - **GSI Optimization**: Implemented proper GSI usage instead of scan operations for better performance
@@ -1738,6 +1750,84 @@ X-User-ID: <user_id>
 }
 ```
 
+### 12. Get User Subreddits
+**GET** `/subreddits/user/{user_id}`
+
+Lấy danh sách subreddits mà user đã subscribe.
+
+**Query Parameters:**
+- `limit` (optional): Số lượng subreddits (default: 20, max: 100)
+- `offset` (optional): Vị trí bắt đầu (default: 0)
+- `sort` (optional): `new` | `old` | `name` (default: `new`)
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "User subreddits retrieved successfully",
+  "data": {
+    "subreddits": [
+      {
+        "subreddit_id": "subreddit_1757518063_01b8625d",
+        "name": "programming",
+        "display_name": "Programming Community",
+        "description": "A community for programmers",
+        "rules": ["Be respectful", "No spam"],
+        "owner_id": "f9ba158c-b051-703e-da3e-5d3ed8522bb5",
+        "moderators": ["f9ba158c-b051-703e-da3e-5d3ed8522bb5"],
+        "subscriber_count": 2,
+        "post_count": 5,
+        "created_at": "2025-09-10T15:27:43.750119+00:00",
+        "updated_at": "2025-09-10T15:33:37.435788+00:00",
+        "is_private": false,
+        "is_nsfw": false,
+        "is_restricted": false,
+        "banner_image": null,
+        "icon_image": null,
+        "primary_color": "#FF6B35",
+        "secondary_color": "#F7F7F7",
+        "language": "en",
+        "country": "US",
+        "is_subscribed": true,
+        "user_role": "subscriber"
+      }
+    ],
+    "pagination": {
+      "limit": 20,
+      "offset": 0,
+      "total": 1,
+      "has_more": false,
+      "next_offset": null
+    }
+  }
+}
+```
+
+### 13. Check User Membership
+**GET** `/subreddits/{subreddit_id}/members/{user_id}`
+
+Kiểm tra user có phải là member của subreddit không.
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "User membership status retrieved successfully",
+  "data": {
+    "is_member": true,
+    "role": "subscriber",
+    "joined_at": "2025-09-10T15:35:30.900000+00:00",
+    "is_active": true
+  }
+}
+```
+
+**Possible roles:**
+- `owner`: User là chủ sở hữu subreddit
+- `moderator`: User là moderator
+- `subscriber`: User đã subscribe
+- `null`: User không phải member
+
 ## Error Codes
 
 ### Subreddit-specific Error Codes
@@ -1747,6 +1837,11 @@ X-User-ID: <user_id>
 - `ALREADY_SUBSCRIBED`: User đã tham gia subreddit
 - `NOT_SUBSCRIBED`: User chưa tham gia subreddit
 - `OWNER_CANNOT_LEAVE`: Owner không thể rời khỏi subreddit của mình
+- `MISSING_USER_ID`: User ID không được cung cấp
+- `MISSING_SUBREDDIT_ID`: Subreddit ID không được cung cấp
+- `INVALID_LIMIT`: Limit không hợp lệ (phải từ 1-100)
+- `INVALID_OFFSET`: Offset không hợp lệ (phải >= 0)
+- `INVALID_SORT`: Sort type không hợp lệ
 
 ---
 
@@ -1886,3 +1981,410 @@ Lấy thống kê feed của user.
 - `FEED_REFRESH_FAILED`: Lỗi khi refresh feed
 - `STATS_RETRIEVAL_FAILED`: Lỗi khi lấy thống kê
 - `CANNOT_JOIN_PRIVATE`: Không thể tham gia subreddit private mà không có lời mời
+
+---
+
+## User Profile Endpoints
+
+### 1. Get Current User Profile
+
+**GET** `/auth/me`
+
+Lấy thông tin profile của user hiện tại.
+
+#### Headers
+```
+Authorization: Bearer <access_token>
+X-User-ID: <user_id>
+```
+
+#### Success Response (200)
+```json
+{
+  "success": true,
+  "message": "User profile retrieved successfully",
+  "data": {
+    "user": {
+      "userId": "user_1757350912_8004796b44e0429",
+      "email": "user@example.com",
+      "username": "username123",
+      "displayName": "John Doe",
+      "bio": "Software developer passionate about technology",
+      "avatar": "https://example.com/avatar.jpg",
+      "createdAt": "2025-01-08T17:01:52.011263Z",
+      "updatedAt": "2025-01-08T17:01:52.011263Z",
+      "isActive": true,
+      "karma": 1500,
+      "postCount": 25,
+      "commentCount": 150,
+      "isPublic": true,
+      "showEmail": false
+    }
+  },
+  "error": null
+}
+```
+
+#### Error Responses
+- `401` - Unauthorized:
+  ```json
+  {
+    "success": false,
+    "error": {
+      "code": "UNAUTHORIZED",
+      "message": "User ID not provided"
+    }
+  }
+  ```
+- `404` - User not found:
+  ```json
+  {
+    "success": false,
+    "error": {
+      "code": "USER_NOT_FOUND",
+      "message": "User not found"
+    }
+  }
+  ```
+
+---
+
+### 2. Update Current User Profile
+
+**PUT** `/auth/me`
+
+Cập nhật thông tin profile của user hiện tại.
+
+#### Headers
+```
+Authorization: Bearer <access_token>
+X-User-ID: <user_id>
+Content-Type: application/json
+```
+
+#### Request Body
+```json
+{
+  "displayName": "John Doe Updated",
+  "bio": "Senior Software Developer at Tech Corp",
+  "avatar": "https://example.com/new-avatar.jpg",
+  "isPublic": true,
+  "showEmail": false
+}
+```
+
+#### Validation Rules
+- **displayName**: 1-50 characters, optional
+- **bio**: Maximum 500 characters, optional
+- **avatar**: Maximum 500 characters, valid URL, optional
+- **isPublic**: Boolean, optional
+- **showEmail**: Boolean, optional
+
+#### Success Response (200)
+```json
+{
+  "success": true,
+  "message": "User profile updated successfully",
+  "data": {
+    "user": {
+      "userId": "user_1757350912_8004796b44e0429",
+      "email": "user@example.com",
+      "username": "username123",
+      "displayName": "John Doe Updated",
+      "bio": "Senior Software Developer at Tech Corp",
+      "avatar": "https://example.com/new-avatar.jpg",
+      "createdAt": "2025-01-08T17:01:52.011263Z",
+      "updatedAt": "2025-01-08T17:01:52.011263Z",
+      "isActive": true,
+      "karma": 1500,
+      "postCount": 25,
+      "commentCount": 150,
+      "isPublic": true,
+      "showEmail": false
+    }
+  },
+  "error": null
+}
+```
+
+#### Error Responses
+- `400` - Validation error:
+  ```json
+  {
+    "success": false,
+    "error": {
+      "code": "VALIDATION_ERROR",
+      "message": "Display name cannot be empty"
+    }
+  }
+  ```
+
+---
+
+### 3. Get Public User Profile
+
+**GET** `/users/{user_id}`
+
+Lấy thông tin profile công khai của user.
+
+#### Path Parameters
+- **user_id**: User ID của user cần lấy thông tin
+
+#### Success Response (200)
+```json
+{
+  "success": true,
+  "message": "User profile retrieved successfully",
+  "data": {
+    "user": {
+      "userId": "user_1757350912_8004796b44e0429",
+      "username": "username123",
+      "displayName": "John Doe",
+      "bio": "Software developer passionate about technology",
+      "avatar": "https://example.com/avatar.jpg",
+      "createdAt": "2025-01-08T17:01:52.011263Z",
+      "karma": 1500,
+      "postCount": 25,
+      "commentCount": 150
+    }
+  },
+  "error": null
+}
+```
+
+#### Error Responses
+- `400` - Missing user ID:
+  ```json
+  {
+    "success": false,
+    "error": {
+      "code": "MISSING_USER_ID",
+      "message": "User ID is required"
+    }
+  }
+  ```
+- `403` - Profile private:
+  ```json
+  {
+    "success": false,
+    "error": {
+      "code": "PROFILE_PRIVATE",
+      "message": "User profile is private"
+    }
+  }
+  ```
+- `404` - User not found:
+  ```json
+  {
+    "success": false,
+    "error": {
+      "code": "USER_NOT_FOUND",
+      "message": "User not found"
+    }
+  }
+  ```
+
+---
+
+### 4. Change Password
+
+**PUT** `/auth/change-password`
+
+Đổi mật khẩu của user hiện tại.
+
+#### Headers
+```
+Authorization: Bearer <access_token>
+X-User-ID: <user_id>
+Content-Type: application/json
+```
+
+#### Request Body
+```json
+{
+  "currentPassword": "oldPassword123",
+  "newPassword": "newPassword123"
+}
+```
+
+#### Validation Rules
+- **currentPassword**: Required
+- **newPassword**: Minimum 8 characters, must contain uppercase, lowercase, and numbers
+
+#### Success Response (200)
+```json
+{
+  "success": true,
+  "message": "Password changed successfully",
+  "data": null,
+  "error": null
+}
+```
+
+#### Error Responses
+- `400` - Validation error:
+  ```json
+  {
+    "success": false,
+    "error": {
+      "code": "VALIDATION_ERROR",
+      "message": "New password must be at least 8 characters long"
+    }
+  }
+  ```
+- `400` - Invalid current password:
+  ```json
+  {
+    "success": false,
+    "error": {
+      "code": "VALIDATION_ERROR",
+      "message": "Current password is incorrect"
+    }
+  }
+  ```
+
+---
+
+### 5. Get User Posts
+
+**GET** `/users/{user_id}/posts`
+
+Lấy danh sách posts của user.
+
+#### Path Parameters
+- **user_id**: User ID của user
+
+#### Query Parameters
+- **limit**: Số lượng posts (default: 20, max: 100)
+- **offset**: Offset cho pagination (default: 0)
+- **sort**: Loại sắp xếp - "new", "hot", "top" (default: "new")
+- **post_type**: Lọc theo loại post - "text", "link", "image", "video" (optional)
+- **is_nsfw**: Lọc theo NSFW flag (optional)
+
+#### Success Response (200)
+```json
+{
+  "success": true,
+  "message": "User posts retrieved successfully",
+  "data": {
+    "posts": [
+      {
+        "postId": "post_123",
+        "title": "My First Post",
+        "content": "This is my first post!",
+        "postType": "text",
+        "upvotes": 10,
+        "downvotes": 2,
+        "score": 8,
+        "commentCount": 5,
+        "createdAt": "2025-01-08T17:01:52.011263Z"
+      }
+    ],
+    "count": 1,
+    "userId": "user_1757350912_8004796b44e0429",
+    "limit": 20,
+    "offset": 0,
+    "hasMore": false
+  },
+  "error": null
+}
+```
+
+---
+
+### 6. Get User Comments
+
+**GET** `/users/{user_id}/comments`
+
+Lấy danh sách comments của user.
+
+#### Path Parameters
+- **user_id**: User ID của user
+
+#### Query Parameters
+- **limit**: Số lượng comments (default: 20, max: 100)
+- **offset**: Offset cho pagination (default: 0)
+- **sort**: Loại sắp xếp - "new", "hot", "top" (default: "new")
+- **comment_type**: Lọc theo loại comment - "comment", "reply" (optional)
+
+#### Success Response (200)
+```json
+{
+  "success": true,
+  "message": "User comments retrieved successfully",
+  "data": {
+    "comments": [
+      {
+        "commentId": "comment_123",
+        "postId": "post_456",
+        "content": "Great post!",
+        "upvotes": 5,
+        "downvotes": 1,
+        "score": 4,
+        "createdAt": "2025-01-08T17:01:52.011263Z"
+      }
+    ],
+    "count": 1,
+    "userId": "user_1757350912_8004796b44e0429",
+    "limit": 20,
+    "offset": 0,
+    "hasMore": false
+  },
+  "error": null
+}
+```
+
+---
+
+### 7. Delete User Account
+
+**DELETE** `/auth/me`
+
+Xóa tài khoản user hiện tại.
+
+#### Headers
+```
+Authorization: Bearer <access_token>
+X-User-ID: <user_id>
+Content-Type: application/json
+```
+
+#### Request Body
+```json
+{
+  "password": "currentPassword123"
+}
+```
+
+#### Success Response (200)
+```json
+{
+  "success": true,
+  "message": "Account deleted successfully",
+  "data": null,
+  "error": null
+}
+```
+
+#### Error Responses
+- `400` - Validation error:
+  ```json
+  {
+    "success": false,
+    "error": {
+      "code": "VALIDATION_ERROR",
+      "message": "Password is required"
+    }
+  }
+  ```
+
+---
+
+### User Profile Error Codes
+- `USER_NOT_FOUND`: User không tồn tại
+- `PROFILE_PRIVATE`: Profile của user là private
+- `MISSING_USER_ID`: Thiếu User ID
+- `VALIDATION_ERROR`: Lỗi validation dữ liệu
+- `UNAUTHORIZED`: Không có quyền truy cập
+- `PASSWORD_CHANGE_FAILED`: Lỗi khi đổi mật khẩu
+- `ACCOUNT_DELETE_FAILED`: Lỗi khi xóa tài khoản

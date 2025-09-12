@@ -1,0 +1,85 @@
+{
+  "total_tests": 11,
+  "passed_tests": 0,
+  "failed_tests": 11,
+  "success_rate": 0.0,
+  "results": [
+    {
+      "test_name": "GET /auth/me - Success",
+      "success": false,
+      "message": "HTTP 403: {\"message\":\"Invalid key=value pair (missing equal-sign) in Authorization header (hashed with SHA-256 and encoded with Base64): 'eB4mhkwocYykFpTWcE5R6IvAwaLoInLW8XWRgVeGt0I='.\"}",
+      "timestamp": "2025-09-11T16:19:01.502364",
+      "response_data": null
+    },
+    {
+      "test_name": "GET /auth/me - Unauthorized",
+      "success": false,
+      "message": "Expected 401, got 403: {\"message\":\"Missing Authentication Token\"}",
+      "timestamp": "2025-09-11T16:19:01.716663",
+      "response_data": null
+    },
+    {
+      "test_name": "PUT /auth/me - Success",
+      "success": false,
+      "message": "HTTP 403: {\"message\":\"Invalid key=value pair (missing equal-sign) in Authorization header (hashed with SHA-256 and encoded with Base64): 'eB4mhkwocYykFpTWcE5R6IvAwaLoInLW8XWRgVeGt0I='.\"}",
+      "timestamp": "2025-09-11T16:19:01.928810",
+      "response_data": null
+    },
+    {
+      "test_name": "PUT /auth/me - Validation Error",
+      "success": false,
+      "message": "Expected 400, got 403: {\"message\":\"Invalid key=value pair (missing equal-sign) in Authorization header (hashed with SHA-256 and encoded with Base64): 'eB4mhkwocYykFpTWcE5R6IvAwaLoInLW8XWRgVeGt0I='.\"}",
+      "timestamp": "2025-09-11T16:19:02.117679",
+      "response_data": null
+    },
+    {
+      "test_name": "GET /users/{user_id} - Success",
+      "success": false,
+      "message": "HTTP 403: {\"message\":\"Missing Authentication Token\"}",
+      "timestamp": "2025-09-11T16:19:02.367706",
+      "response_data": null
+    },
+    {
+      "test_name": "GET /users/{user_id} - Not Found",
+      "success": false,
+      "message": "Expected 404, got 403: {\"message\":\"Missing Authentication Token\"}",
+      "timestamp": "2025-09-11T16:19:02.557861",
+      "response_data": null
+    },
+    {
+      "test_name": "PUT /auth/change-password - Success",
+      "success": false,
+      "message": "HTTP 403: {\"message\":\"Invalid key=value pair (missing equal-sign) in Authorization header (hashed with SHA-256 and encoded with Base64): 'eB4mhkwocYykFpTWcE5R6IvAwaLoInLW8XWRgVeGt0I='.\"}",
+      "timestamp": "2025-09-11T16:19:02.667919",
+      "response_data": null
+    },
+    {
+      "test_name": "PUT /auth/change-password - Validation Error",
+      "success": false,
+      "message": "Expected 400, got 403: {\"message\":\"Invalid key=value pair (missing equal-sign) in Authorization header (hashed with SHA-256 and encoded with Base64): 'eB4mhkwocYykFpTWcE5R6IvAwaLoInLW8XWRgVeGt0I='.\"}",
+      "timestamp": "2025-09-11T16:19:02.890070",
+      "response_data": null
+    },
+    {
+      "test_name": "GET /users/{user_id}/posts - Success",
+      "success": false,
+      "message": "HTTP 403: {\"message\":\"Missing Authentication Token\"}",
+      "timestamp": "2025-09-11T16:19:03.142567",
+      "response_data": null
+    },
+    {
+      "test_name": "GET /users/{user_id}/comments - Success",
+      "success": false,
+      "message": "HTTP 403: {\"message\":\"Missing Authentication Token\"}",
+      "timestamp": "2025-09-11T16:19:03.227816",
+      "response_data": null
+    },
+    {
+      "test_name": "DELETE /auth/me - Validation Error",
+      "success": false,
+      "message": "Expected 400, got 403: {\"message\":\"Invalid key=value pair (missing equal-sign) in Authorization header (hashed with SHA-256 and encoded with Base64): 'eB4mhkwocYykFpTWcE5R6IvAwaLoInLW8XWRgVeGt0I='.\"}",
+      "timestamp": "2025-09-11T16:19:03.502920",
+      "response_data": null
+    }
+  ]
+}

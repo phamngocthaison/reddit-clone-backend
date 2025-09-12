@@ -1,0 +1,117 @@
+{
+  "total_tests": 11,
+  "passed_tests": 4,
+  "failed_tests": 7,
+  "success_rate": 36.36363636363637,
+  "results": [
+    {
+      "test_name": "GET /auth/me - Success",
+      "success": false,
+      "message": "HTTP 404: {\"success\": false, \"message\": null, \"data\": null, \"error\": {\"code\": \"USER_NOT_FOUND\", \"message\": \"Failed to retrieve user profile\"}}",
+      "timestamp": "2025-09-11T16:31:51.889251",
+      "response_data": null
+    },
+    {
+      "test_name": "GET /auth/me - Unauthorized",
+      "success": true,
+      "message": "Correctly returned 401 Unauthorized",
+      "timestamp": "2025-09-11T16:31:52.355682",
+      "response_data": {
+        "success": false,
+        "message": null,
+        "data": null,
+        "error": {
+          "code": "UNAUTHORIZED",
+          "message": "User ID not provided"
+        }
+      }
+    },
+    {
+      "test_name": "PUT /auth/me - Success",
+      "success": false,
+      "message": "HTTP 400: {\"success\": false, \"message\": null, \"data\": null, \"error\": {\"code\": \"VALIDATION_ERROR\", \"message\": \"Failed to retrieve user profile\"}}",
+      "timestamp": "2025-09-11T16:31:53.311344",
+      "response_data": null
+    },
+    {
+      "test_name": "PUT /auth/me - Validation Error",
+      "success": true,
+      "message": "Correctly returned 400 Validation Error",
+      "timestamp": "2025-09-11T16:31:53.538583",
+      "response_data": {
+        "success": false,
+        "message": null,
+        "data": null,
+        "error": {
+          "code": "VALIDATION_ERROR",
+          "message": "2 validation errors for UpdateProfileRequest\ndisplayName\n  ensure this value has at least 1 characters (type=value_error.any_str.min_length; limit_value=1)\nbio\n  ensure this value has at most 500 characters (type=value_error.any_str.max_length; limit_value=500)"
+        }
+      }
+    },
+    {
+      "test_name": "GET /users/{user_id} - Success",
+      "success": false,
+      "message": "HTTP 400: {\"success\": false, \"message\": null, \"data\": null, \"error\": {\"code\": \"VALIDATION_ERROR\", \"message\": \"Failed to retrieve user profile\"}}",
+      "timestamp": "2025-09-11T16:31:54.082393",
+      "response_data": null
+    },
+    {
+      "test_name": "GET /users/{user_id} - Not Found",
+      "success": false,
+      "message": "Expected 404, got 400: {\"success\": false, \"message\": null, \"data\": null, \"error\": {\"code\": \"VALIDATION_ERROR\", \"message\": \"Failed to retrieve user profile\"}}",
+      "timestamp": "2025-09-11T16:31:54.567340",
+      "response_data": null
+    },
+    {
+      "test_name": "PUT /auth/change-password - Success",
+      "success": false,
+      "message": "HTTP 400: {\"success\": false, \"message\": null, \"data\": null, \"error\": {\"code\": \"VALIDATION_ERROR\", \"message\": \"Failed to change password\"}}",
+      "timestamp": "2025-09-11T16:31:55.040236",
+      "response_data": null
+    },
+    {
+      "test_name": "PUT /auth/change-password - Validation Error",
+      "success": true,
+      "message": "Correctly returned 400 Validation Error",
+      "timestamp": "2025-09-11T16:31:55.288554",
+      "response_data": {
+        "success": false,
+        "message": null,
+        "data": null,
+        "error": {
+          "code": "VALIDATION_ERROR",
+          "message": "1 validation error for ChangePasswordRequest\nnewPassword\n  ensure this value has at least 8 characters (type=value_error.any_str.min_length; limit_value=8)"
+        }
+      }
+    },
+    {
+      "test_name": "GET /users/{user_id}/posts - Success",
+      "success": false,
+      "message": "HTTP 400: {\"success\": false, \"message\": null, \"data\": null, \"error\": {\"code\": \"VALIDATION_ERROR\", \"message\": \"Failed to retrieve user posts\"}}",
+      "timestamp": "2025-09-11T16:31:55.756970",
+      "response_data": null
+    },
+    {
+      "test_name": "GET /users/{user_id}/comments - Success",
+      "success": false,
+      "message": "HTTP 400: {\"success\": false, \"message\": null, \"data\": null, \"error\": {\"code\": \"VALIDATION_ERROR\", \"message\": \"Failed to retrieve user comments\"}}",
+      "timestamp": "2025-09-11T16:31:56.233877",
+      "response_data": null
+    },
+    {
+      "test_name": "DELETE /auth/me - Validation Error",
+      "success": true,
+      "message": "Correctly returned 400 Validation Error",
+      "timestamp": "2025-09-11T16:31:56.520621",
+      "response_data": {
+        "success": false,
+        "message": null,
+        "data": null,
+        "error": {
+          "code": "VALIDATION_ERROR",
+          "message": "1 validation error for DeleteAccountRequest\npassword\n  field required (type=value_error.missing)"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "Variables": {
+    "USERS_TABLE_NAME": "reddit-clone-users",
+    "POSTS_TABLE_NAME": "reddit-clone-posts",
+    "COMMENTS_TABLE_NAME": "reddit-clone-comments",
+    "USER_POOL_ID": "ap-southeast-1_tcwIJSUFS",
+    "USER_POOL_CLIENT_ID": "1et6o5qdvfgcrj18qqbglkpkm1"
+  }
+}

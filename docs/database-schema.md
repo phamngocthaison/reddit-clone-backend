@@ -17,15 +17,21 @@ This document outlines the database schema for the Reddit Clone Backend using Dy
 | `createdAt` | String | ISO timestamp of account creation | Yes |
 | `updatedAt` | String | ISO timestamp of last update | Yes |
 | `isActive` | Boolean | Whether the user account is active | Yes |
+| `displayName` | String | User's display name for profile | No |
+| `bio` | String | User's bio/description | No |
+| `avatar` | String | URL to user's avatar image | No |
+| `karma` | Number | User's karma points | No |
+| `postCount` | Number | Number of posts created | No |
+| `commentCount` | Number | Number of comments made | No |
+| `isPublic` | Boolean | Whether profile is public | No |
+| `showEmail` | Boolean | Whether to show email publicly | No |
 
 **Access Patterns**:
 - Get user by userId (Primary Key)
 - Get user by email (EmailIndex GSI)
 - List all users (Scan - for admin purposes)
 
-### Future Tables (Planned)
-
-#### Posts Table (`reddit-clone-posts`)
+### Posts Table (`reddit-clone-posts`)
 
 **Primary Key**: `postId` (String)  
 **Global Secondary Indexes**:
@@ -50,7 +56,7 @@ This document outlines the database schema for the Reddit Clone Backend using Dy
 | `updatedAt` | String | ISO timestamp of last update |
 | `isDeleted` | Boolean | Soft delete flag |
 
-#### Comments Table (`reddit-clone-comments`)
+### Comments Table (`reddit-clone-comments`)
 
 **Primary Key**: `commentId` (String)  
 **Global Secondary Indexes**:
@@ -73,26 +79,78 @@ This document outlines the database schema for the Reddit Clone Backend using Dy
 | `updatedAt` | String | ISO timestamp of last update |
 | `isDeleted` | Boolean | Soft delete flag |
 
-#### Communities Table (`reddit-clone-communities`)
+### Subreddits Table (`reddit-clone-subreddits`)
 
-**Primary Key**: `communityId` (String)  
+**Primary Key**: `subredditId` (String)  
 **Global Secondary Index**: `NameIndex` - Partition Key: `name` (String)
 
 | Attribute | Type | Description |
 |-----------|------|-------------|
-| `communityId` | String | Unique community identifier |
-| `name` | String | Community name (like subreddit name) |
+| `subredditId` | String | Unique subreddit identifier |
+| `name` | String | Subreddit name (like r/programming) |
 | `displayName` | String | Display name for UI |
-| `description` | String | Community description |
-| `creatorId` | String | ID of user who created the community |
-| `memberCount` | Number | Number of members |
+| `description` | String | Subreddit description |
+| `ownerId` | String | ID of user who created the subreddit |
+| `moderators` | List | List of moderator user IDs |
+| `subscriberCount` | Number | Number of subscribers |
 | `postCount` | Number | Number of posts |
-| `rules` | String | Community rules (JSON string) |
-| `isPrivate` | Boolean | Whether community is private |
+| `rules` | List | Subreddit rules |
+| `isPrivate` | Boolean | Whether subreddit is private |
+| `isNsfw` | Boolean | Whether subreddit is NSFW |
+| `isRestricted` | Boolean | Whether subreddit is restricted |
+| `primaryColor` | String | Primary color for UI |
+| `secondaryColor` | String | Secondary color for UI |
+| `language` | String | Subreddit language |
+| `country` | String | Subreddit country |
+| `bannerImage` | String | Banner image URL |
+| `iconImage` | String | Icon image URL |
 | `createdAt` | String | ISO timestamp of creation |
 | `updatedAt` | String | ISO timestamp of last update |
 
-#### Votes Table (`reddit-clone-votes`)
+### Subscriptions Table (`reddit-clone-subscriptions`)
+
+**Primary Key**: `subscriptionId` (String)  
+**Global Secondary Indexes**:
+- `UserIndex` - Partition Key: `userId`, Sort Key: `subredditId`
+- `SubredditIndex` - Partition Key: `subredditId`, Sort Key: `userId`
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `subscriptionId` | String | Unique subscription identifier |
+| `userId` | String | ID of user who subscribed |
+| `subredditId` | String | ID of subreddit being subscribed to |
+| `role` | String | User role: 'subscriber', 'moderator', 'owner' |
+| `joinedAt` | String | ISO timestamp of subscription |
+| `isActive` | Boolean | Whether subscription is active |
+
+### Feeds Table (`reddit-clone-feeds`)
+
+**Primary Key**: `feedId` (String)  
+**Global Secondary Index**: `UserIndex` - Partition Key: `userId`, Sort Key: `createdAt`
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `feedId` | String | Unique feed item identifier |
+| `userId` | String | ID of user this feed belongs to |
+| `postId` | String | ID of post in feed |
+| `subredditId` | String | ID of subreddit the post belongs to |
+| `authorId` | String | ID of post author |
+| `postTitle` | String | Post title |
+| `postContent` | String | Post content preview |
+| `postImageUrl` | String | Post image URL |
+| `subredditName` | String | Subreddit name |
+| `authorName` | String | Author username |
+| `upvotes` | Number | Number of upvotes |
+| `downvotes` | Number | Number of downvotes |
+| `commentsCount` | Number | Number of comments |
+| `isPinned` | Boolean | Whether post is pinned |
+| `isNSFW` | Boolean | Whether post is NSFW |
+| `isSpoiler` | Boolean | Whether post is spoiler |
+| `tags` | List | Post tags |
+| `createdAt` | String | ISO timestamp of creation |
+| `postScore` | Number | Post score for ranking |
+
+### Votes Table (`reddit-clone-votes`)
 
 **Primary Key**: `voteId` (String)  
 **Global Secondary Indexes**:

@@ -23,8 +23,8 @@ class AWSClients:
         
         self.region = os.getenv("REGION", "us-east-1")
         self.user_pool_id = os.getenv("USER_POOL_ID")
-        self.client_id = os.getenv("CLIENT_ID")
-        self.users_table = os.getenv("USERS_TABLE")
+        self.client_id = os.getenv("USER_POOL_CLIENT_ID")
+        self.users_table = os.getenv("USERS_TABLE_NAME")
 
         # Initialize AWS clients
         self.cognito_client = boto3.client("cognito-idp", region_name=self.region)

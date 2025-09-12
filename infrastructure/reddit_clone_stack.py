@@ -40,9 +40,10 @@ class RedditCloneStack(cdk.Stack):
         comments_lambda = self._create_comments_lambda(lambda_execution_role)
         subreddits_lambda = self._create_subreddits_lambda(lambda_execution_role)
         feeds_lambda = self._create_feeds_lambda(lambda_execution_role)
+        user_profile_lambda = self._create_user_profile_lambda(lambda_execution_role)
 
         # API Gateway
-        self.api = self._create_api_gateway(auth_lambda, comments_lambda, subreddits_lambda, feeds_lambda)
+        self.api = self._create_api_gateway(auth_lambda, comments_lambda, subreddits_lambda, feeds_lambda, user_profile_lambda)
 
         # Outputs
         self._create_outputs()
@@ -590,7 +591,34 @@ class RedditCloneStack(cdk.Stack):
 
         return feeds_lambda
 
-    def _create_api_gateway(self, auth_lambda: lambda_.Function, comments_lambda: lambda_.Function, subreddits_lambda: lambda_.Function, feeds_lambda: lambda_.Function) -> apigateway.RestApi:
+    def _create_user_profile_lambda(self, execution_role: iam.Role) -> lambda_.Function:
+        """Create user profile Lambda function."""
+        user_profile_lambda = lambda_.Function(
+            self,
+            "UserProfileLambda",
+            runtime=lambda_.Runtime.PYTHON_3_11,
+            handler="lambda_handler_user_profile.handler",
+            code=lambda_.Code.from_asset("lambda-layer.zip"),
+            role=execution_role,
+            timeout=cdk.Duration.seconds(30),
+            memory_size=512,
+            environment={
+                "USERS_TABLE_NAME": self.users_table.table_name,
+                "POSTS_TABLE_NAME": self.posts_table.table_name,
+                "COMMENTS_TABLE_NAME": self.comments_table.table_name,
+                "USER_POOL_ID": self.user_pool.user_pool_id,
+                "USER_POOL_CLIENT_ID": self.user_pool_client.user_pool_client_id,
+            },
+        )
+
+        # Grant permissions to DynamoDB tables
+        self.users_table.grant_read_write_data(user_profile_lambda)
+        self.posts_table.grant_read_data(user_profile_lambda)
+        self.comments_table.grant_read_data(user_profile_lambda)
+
+        return user_profile_lambda
+
+    def _create_api_gateway(self, auth_lambda: lambda_.Function, comments_lambda: lambda_.Function, subreddits_lambda: lambda_.Function, feeds_lambda: lambda_.Function, user_profile_lambda: lambda_.Function) -> apigateway.RestApi:
         """Create API Gateway with authentication endpoints."""
         api = apigateway.RestApi(
             self,
@@ -616,6 +644,7 @@ class RedditCloneStack(cdk.Stack):
         comments_integration = apigateway.LambdaIntegration(comments_lambda)
         subreddits_integration = apigateway.LambdaIntegration(subreddits_lambda)
         feeds_integration = apigateway.LambdaIntegration(feeds_lambda)
+        user_profile_integration = apigateway.LambdaIntegration(user_profile_lambda)
 
         # Auth endpoints - each endpoint needs its own resource path
         auth_resource = api.root.add_resource("auth")
@@ -722,6 +751,16 @@ class RedditCloneStack(cdk.Stack):
         
         subreddit_moderator_resource = subreddit_moderators_resource.add_resource("{user_id}")
         subreddit_moderator_resource.add_method("DELETE", subreddits_integration)
+        
+        # User subreddits endpoint
+        subreddits_user_resource = subreddits_resource.add_resource("user")
+        subreddit_user_resource = subreddits_user_resource.add_resource("{user_id}")
+        subreddit_user_resource.add_method("GET", subreddits_integration)
+        
+        # Check user membership endpoint
+        subreddit_members_resource = subreddit_resource.add_resource("members")
+        subreddit_member_resource = subreddit_members_resource.add_resource("{user_id}")
+        subreddit_member_resource.add_method("GET", subreddits_integration)
 
         # Feeds endpoints - use feeds_lambda
         feeds_resource = api.root.add_resource("feeds")
@@ -736,6 +775,32 @@ class RedditCloneStack(cdk.Stack):
         # Feed statistics endpoint
         feeds_stats_resource = feeds_resource.add_resource("stats")
         feeds_stats_resource.add_method("GET", feeds_integration)
+
+        # User Profile endpoints - use user_profile_lambda
+        # Auth/me endpoints (current user profile)
+        auth_me_resource = auth_resource.add_resource("me")
+        auth_me_resource.add_method("GET", user_profile_integration)
+        auth_me_resource.add_method("PUT", user_profile_integration)
+        auth_me_resource.add_method("DELETE", user_profile_integration)
+        
+        # Change password endpoint
+        auth_change_password_resource = auth_resource.add_resource("change-password")
+        auth_change_password_resource.add_method("PUT", user_profile_integration)
+        
+        # Users endpoints (public user profiles)
+        users_resource = api.root.add_resource("users")
+        
+        # Individual user profile endpoint
+        user_resource = users_resource.add_resource("{user_id}")
+        user_resource.add_method("GET", user_profile_integration)
+        
+        # User posts endpoint
+        user_posts_resource = user_resource.add_resource("posts")
+        user_posts_resource.add_method("GET", user_profile_integration)
+        
+        # User comments endpoint
+        user_comments_resource = user_resource.add_resource("comments")
+        user_comments_resource.add_method("GET", user_profile_integration)
 
         return api
 
