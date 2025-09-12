@@ -1093,6 +1093,69 @@
 						}
 					},
 					"response": []
+				},
+				{
+					"name": "Get User Subreddits",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "X-User-ID",
+								"value": "{{user_id}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/subreddits/user/{{user_id}}?limit=20&offset=0&sort=new",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"subreddits",
+								"user",
+								"{{user_id}}"
+							],
+							"query": [
+								{
+									"key": "limit",
+									"value": "20"
+								},
+								{
+									"key": "offset",
+									"value": "0"
+								},
+								{
+									"key": "sort",
+									"value": "new"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Check User Membership",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "X-User-ID",
+								"value": "{{user_id}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/subreddits/{{subreddit_id}}/members/{{user_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"subreddits",
+								"{{subreddit_id}}",
+								"members",
+								"{{user_id}}"
+							]
+						}
+					},
+					"response": []
 				}
 			]
 		},
