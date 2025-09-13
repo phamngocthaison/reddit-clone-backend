@@ -114,9 +114,13 @@ async def handle_get_my_profile(event: Dict[str, Any]) -> Dict[str, Any]:
         
         user_profile = await user_profile_service.get_user_profile(user_id)
         
+        # Use Pydantic's json() method which handles datetime serialization
+        import json
+        user_data = json.loads(user_profile.json())
+        
         return create_success_response(
             "User profile retrieved successfully",
-            {"user": user_profile.dict()}
+            {"user": user_data}
         )
         
     except ValueError as e:
@@ -138,9 +142,13 @@ async def handle_update_my_profile(event: Dict[str, Any]) -> Dict[str, Any]:
         
         updated_profile = await user_profile_service.update_user_profile(user_id, request)
         
+        # Use Pydantic's json() method which handles datetime serialization
+        import json
+        user_data = json.loads(updated_profile.json())
+        
         return create_success_response(
             "User profile updated successfully",
-            {"user": updated_profile.dict()}
+            {"user": user_data}
         )
         
     except ValueError as e:
@@ -159,9 +167,13 @@ async def handle_get_user_profile(event: Dict[str, Any]) -> Dict[str, Any]:
         
         public_profile = await user_profile_service.get_public_user_profile(user_id)
         
+        # Use Pydantic's json() method which handles datetime serialization
+        import json
+        user_data = json.loads(public_profile.json())
+        
         return create_success_response(
             "User profile retrieved successfully",
-            {"user": public_profile.dict()}
+            {"user": user_data}
         )
         
     except ValueError as e:

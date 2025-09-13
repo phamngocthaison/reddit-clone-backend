@@ -44,20 +44,20 @@ class UserProfileService:
             
             # Convert DynamoDB item to UserProfile
             return UserProfile(
-                user_id=user_data["userId"],
+                userId=user_data["userId"],
                 email=user_data["email"],
                 username=user_data["username"],
-                created_at=datetime.fromisoformat(user_data["createdAt"].replace("Z", "+00:00")),
-                updated_at=datetime.fromisoformat(user_data["updatedAt"].replace("Z", "+00:00")),
-                is_active=user_data.get("isActive", True),
-                display_name=user_data.get("displayName"),
+                createdAt=datetime.fromisoformat(user_data["createdAt"].replace("Z", "+00:00")),
+                updatedAt=datetime.fromisoformat(user_data["updatedAt"].replace("Z", "+00:00")),
+                isActive=user_data.get("isActive", True),
+                displayName=user_data.get("displayName"),
                 bio=user_data.get("bio"),
                 avatar=user_data.get("avatar"),
                 karma=user_data.get("karma", 0),
-                post_count=user_data.get("postCount", 0),
-                comment_count=user_data.get("commentCount", 0),
-                is_public=user_data.get("isPublic", True),
-                show_email=user_data.get("showEmail", False)
+                postCount=user_data.get("postCount", 0),
+                commentCount=user_data.get("commentCount", 0),
+                isPublic=user_data.get("isPublic", True),
+                showEmail=user_data.get("showEmail", False)
             )
             
         except ClientError as e:
@@ -74,15 +74,15 @@ class UserProfileService:
                 raise ValueError("User profile is private")
             
             return PublicUserProfile(
-                user_id=user_profile.user_id,
+                userId=user_profile.user_id,
                 username=user_profile.username,
-                display_name=user_profile.display_name,
+                displayName=user_profile.display_name,
                 bio=user_profile.bio,
                 avatar=user_profile.avatar,
-                created_at=user_profile.created_at,
+                createdAt=user_profile.created_at,
                 karma=user_profile.karma,
-                post_count=user_profile.post_count,
-                comment_count=user_profile.comment_count
+                postCount=user_profile.post_count,
+                commentCount=user_profile.comment_count
             )
             
         except ValueError as e:
