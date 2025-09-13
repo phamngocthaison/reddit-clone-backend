@@ -105,14 +105,14 @@ def parse_request_body(event: Dict[str, Any]) -> Dict[str, Any]:
 # USER PROFILE HANDLERS
 # ============================================================================
 
-def handle_get_my_profile(event: Dict[str, Any]) -> Dict[str, Any]:
+async def handle_get_my_profile(event: Dict[str, Any]) -> Dict[str, Any]:
     """Handle GET /auth/me - Get current user profile."""
     try:
         user_id = get_user_id_from_event(event)
         if not user_id:
             return create_error_response(401, "UNAUTHORIZED", "User ID not provided")
         
-        user_profile = user_profile_service.get_user_profile(user_id)
+        user_profile = await user_profile_service.get_user_profile(user_id)
         
         return create_success_response(
             "User profile retrieved successfully",
@@ -126,7 +126,7 @@ def handle_get_my_profile(event: Dict[str, Any]) -> Dict[str, Any]:
         return create_error_response(500, "INTERNAL_ERROR", "Failed to retrieve user profile")
 
 
-def handle_update_my_profile(event: Dict[str, Any]) -> Dict[str, Any]:
+async def handle_update_my_profile(event: Dict[str, Any]) -> Dict[str, Any]:
     """Handle PUT /auth/me - Update current user profile."""
     try:
         user_id = get_user_id_from_event(event)
@@ -136,7 +136,7 @@ def handle_update_my_profile(event: Dict[str, Any]) -> Dict[str, Any]:
         body = parse_request_body(event)
         request = UpdateProfileRequest(**body)
         
-        updated_profile = user_profile_service.update_user_profile(user_id, request)
+        updated_profile = await user_profile_service.update_user_profile(user_id, request)
         
         return create_success_response(
             "User profile updated successfully",
@@ -150,14 +150,14 @@ def handle_update_my_profile(event: Dict[str, Any]) -> Dict[str, Any]:
         return create_error_response(500, "INTERNAL_ERROR", "Failed to update user profile")
 
 
-def handle_get_user_profile(event: Dict[str, Any]) -> Dict[str, Any]:
+async def handle_get_user_profile(event: Dict[str, Any]) -> Dict[str, Any]:
     """Handle GET /users/{user_id} - Get public user profile."""
     try:
         user_id = event.get("pathParameters", {}).get("user_id")
         if not user_id:
             return create_error_response(400, "MISSING_USER_ID", "User ID is required")
         
-        public_profile = user_profile_service.get_public_user_profile(user_id)
+        public_profile = await user_profile_service.get_public_user_profile(user_id)
         
         return create_success_response(
             "User profile retrieved successfully",
@@ -218,7 +218,7 @@ def handle_delete_account(event: Dict[str, Any]) -> Dict[str, Any]:
         return create_error_response(500, "INTERNAL_ERROR", "Failed to delete account")
 
 
-def handle_get_user_posts(event: Dict[str, Any]) -> Dict[str, Any]:
+async def handle_get_user_posts(event: Dict[str, Any]) -> Dict[str, Any]:
     """Handle GET /users/{user_id}/posts - Get user posts."""
     try:
         user_id = event.get("pathParameters", {}).get("user_id")
@@ -235,7 +235,7 @@ def handle_get_user_posts(event: Dict[str, Any]) -> Dict[str, Any]:
             is_nsfw=query_params.get("is_nsfw")
         )
         
-        posts_response = user_profile_service.get_user_posts(user_id, request)
+        posts_response = await user_profile_service.get_user_posts(user_id, request)
         
         return create_success_response(
             "User posts retrieved successfully",
@@ -249,7 +249,7 @@ def handle_get_user_posts(event: Dict[str, Any]) -> Dict[str, Any]:
         return create_error_response(500, "INTERNAL_ERROR", "Failed to retrieve user posts")
 
 
-def handle_get_user_comments(event: Dict[str, Any]) -> Dict[str, Any]:
+async def handle_get_user_comments(event: Dict[str, Any]) -> Dict[str, Any]:
     """Handle GET /users/{user_id}/comments - Get user comments."""
     try:
         user_id = event.get("pathParameters", {}).get("user_id")
@@ -265,7 +265,7 @@ def handle_get_user_comments(event: Dict[str, Any]) -> Dict[str, Any]:
             comment_type=query_params.get("comment_type")
         )
         
-        comments_response = user_profile_service.get_user_comments(user_id, request)
+        comments_response = await user_profile_service.get_user_comments(user_id, request)
         
         return create_success_response(
             "User comments retrieved successfully",
@@ -285,35 +285,40 @@ def handle_get_user_comments(event: Dict[str, Any]) -> Dict[str, Any]:
 
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     """Lambda handler for user profile endpoints."""
-    logger.info(f"Event: {json.dumps(event)}")
+    import asyncio
     
-    try:
-        # Get path and method
-        resource = event.get("resource", "")
-        method = event.get("httpMethod", "")
+    async def async_handler():
+        logger.info(f"Event: {json.dumps(event)}")
         
-        # Handle preflight OPTIONS requests
-        if method == "OPTIONS":
-            return create_success_response("CORS preflight")
+        try:
+            # Get path and method
+            resource = event.get("resource", "")
+            method = event.get("httpMethod", "")
+            
+            # Handle preflight OPTIONS requests
+            if method == "OPTIONS":
+                return create_success_response("CORS preflight")
+            
+            # Route to appropriate handler based on path
+            if resource == "/auth/me" and method == "GET":
+                return await handle_get_my_profile(event)
+            elif resource == "/auth/me" and method == "PUT":
+                return await handle_update_my_profile(event)
+            elif resource == "/auth/me" and method == "DELETE":
+                return handle_delete_account(event)
+            elif resource == "/auth/change-password" and method == "PUT":
+                return handle_change_password(event)
+            elif resource == "/users/{user_id}" and method == "GET":
+                return await handle_get_user_profile(event)
+            elif resource == "/users/{user_id}/posts" and method == "GET":
+                return await handle_get_user_posts(event)
+            elif resource == "/users/{user_id}/comments" and method == "GET":
+                return await handle_get_user_comments(event)
+            else:
+                return create_error_response(404, "NOT_FOUND", "Endpoint not found")
         
-        # Route to appropriate handler based on path
-        if resource == "/auth/me" and method == "GET":
-            return handle_get_my_profile(event)
-        elif resource == "/auth/me" and method == "PUT":
-            return handle_update_my_profile(event)
-        elif resource == "/auth/me" and method == "DELETE":
-            return handle_delete_account(event)
-        elif resource == "/auth/change-password" and method == "PUT":
-            return handle_change_password(event)
-        elif resource == "/users/{user_id}" and method == "GET":
-            return handle_get_user_profile(event)
-        elif resource == "/users/{user_id}/posts" and method == "GET":
-            return handle_get_user_posts(event)
-        elif resource == "/users/{user_id}/comments" and method == "GET":
-            return handle_get_user_comments(event)
-        else:
-            return create_error_response(404, "NOT_FOUND", "Endpoint not found")
+        except Exception as e:
+            logger.error(f"Lambda handler error: {e}")
+            return create_error_response(500, "INTERNAL_ERROR", "Internal server error")
     
-    except Exception as e:
-        logger.error(f"Lambda handler error: {e}")
-        return create_error_response(500, "INTERNAL_ERROR", "Internal server error")
+    return asyncio.run(async_handler())

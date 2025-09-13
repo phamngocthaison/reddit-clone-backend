@@ -1,0 +1,1367 @@
+{
+	"info": {
+		"_postman_id": "reddit-clone-backend-v2.5",
+		"name": "Reddit Clone Backend v2.5",
+		"description": "Complete API collection for Reddit Clone Backend with User Profile support and Reply Comments",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "reddit-clone-backend"
+	},
+	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Register User",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"test@example.com\",\n  \"username\": \"testuser123\",\n  \"password\": \"TestPass123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/register",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"auth",
+								"register"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Login with Email",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"TestPass123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/login",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"auth",
+								"login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Login with Username",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"testuser123\",\n  \"password\": \"TestPass123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/login",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"auth",
+								"login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Logout",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "X-User-ID",
+								"value": "{{user_id}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/logout",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"auth",
+								"logout"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Forgot Password",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"test@example.com\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/forgot-password",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"auth",
+								"forgot-password"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Reset Password",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"test@example.com\",\n  \"confirmationCode\": \"123456\",\n  \"newPassword\": \"NewTestPass123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/reset-password",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"auth",
+								"reset-password"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "User Profile",
+			"item": [
+				{
+					"name": "Get Current User Profile",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "X-User-ID",
+								"value": "{{user_id}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/auth/me",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"auth",
+								"me"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Current User Profile",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "X-User-ID",
+								"value": "{{user_id}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"displayName\": \"John Doe Updated\",\n  \"bio\": \"Senior Software Developer at Tech Corp\",\n  \"avatar\": \"https://example.com/new-avatar.jpg\",\n  \"isPublic\": true,\n  \"showEmail\": false\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/me",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"auth",
+								"me"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Change Password",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "X-User-ID",
+								"value": "{{user_id}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"currentPassword\": \"TestPass123\",\n  \"newPassword\": \"NewTestPass123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/change-password",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"auth",
+								"change-password"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete User Account",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "X-User-ID",
+								"value": "{{user_id}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"password\": \"TestPass123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/me",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"auth",
+								"me"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Public User Profile",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/users/{{user_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"users",
+								"{{user_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get User Posts",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/users/{{user_id}}/posts?limit=20&offset=0&sort=new",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"users",
+								"{{user_id}}",
+								"posts"
+							],
+							"query": [
+								{
+									"key": "limit",
+									"value": "20"
+								},
+								{
+									"key": "offset",
+									"value": "0"
+								},
+								{
+									"key": "sort",
+									"value": "new"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get User Comments",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/users/{{user_id}}/comments?limit=20&offset=0&sort=new",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"users",
+								"{{user_id}}",
+								"comments"
+							],
+							"query": [
+								{
+									"key": "limit",
+									"value": "20"
+								},
+								{
+									"key": "offset",
+									"value": "0"
+								},
+								{
+									"key": "sort",
+									"value": "new"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Posts",
+			"item": [
+				{
+					"name": "Create Post",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-User-ID",
+								"value": "{{user_id}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"My First Post\",\n  \"content\": \"This is the content of my post\",\n  \"subreddit_id\": \"subreddit_123\",\n  \"post_type\": \"text\",\n  \"url\": null,\n  \"media_urls\": null,\n  \"is_nsfw\": false,\n  \"is_spoiler\": false,\n  \"flair\": \"Discussion\",\n  \"tags\": [\"programming\", \"tutorial\"]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/posts/create",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"posts",
+								"create"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Posts",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/posts?limit=20&offset=0&sort=hot",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"posts"
+							],
+							"query": [
+								{
+									"key": "limit",
+									"value": "20"
+								},
+								{
+									"key": "offset",
+									"value": "0"
+								},
+								{
+									"key": "sort",
+									"value": "hot"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Post by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/posts/{{post_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"posts",
+								"{{post_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Post",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-User-ID",
+								"value": "{{user_id}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Updated Post Title\",\n  \"content\": \"Updated content\",\n  \"is_nsfw\": false,\n  \"is_spoiler\": true,\n  \"flair\": \"Updated Flair\",\n  \"tags\": [\"updated\", \"tags\"]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/posts/{{post_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"posts",
+								"{{post_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Post",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "X-User-ID",
+								"value": "{{user_id}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/posts/{{post_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"posts",
+								"{{post_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Vote Post",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-User-ID",
+								"value": "{{user_id}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"vote_type\": \"upvote\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/posts/{{post_id}}/vote",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"posts",
+								"{{post_id}}",
+								"vote"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Comments",
+			"item": [
+				{
+					"name": "Create Comment",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-User-ID",
+								"value": "{{user_id}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"post_id\": \"{{post_id}}\",\n  \"content\": \"This is a great post! Thanks for sharing.\",\n  \"parent_id\": null,\n  \"comment_type\": \"comment\",\n  \"is_nsfw\": false,\n  \"is_spoiler\": false,\n  \"flair\": \"Discussion\",\n  \"tags\": [\"feedback\", \"positive\"]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/comments/create",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"comments",
+								"create"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Reply Comment",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-User-ID",
+								"value": "{{user_id}}"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"post_id\": \"{{post_id}}\",\n  \"content\": \"I agree with your point! This is a great insight.\",\n  \"parent_id\": \"\",\n  \"comment_type\": \"reply\",\n  \"is_nsfw\": false,\n  \"is_spoiler\": false,\n  \"flair\": \"Agreement\",\n  \"tags\": [\"agreement\", \"support\"]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/comments/create",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"comments",
+								"create"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Comments",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/comments?post_id={{post_id}}&limit=20&offset=0",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"comments"
+							],
+							"query": [
+								{
+									"key": "post_id",
+									"value": "{{post_id}}"
+								},
+								{
+									"key": "limit",
+									"value": "20"
+								},
+								{
+									"key": "offset",
+									"value": "0"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Comments by Post ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/posts/{{post_id}}/comments?limit=20&offset=0",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"posts",
+								"{{post_id}}",
+								"comments"
+							],
+							"query": [
+								{
+									"key": "limit",
+									"value": "20"
+								},
+								{
+									"key": "offset",
+									"value": "0"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Comment by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/comments/{{comment_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"comments",
+								"{{comment_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Comment",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-User-ID",
+								"value": "{{user_id}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"content\": \"Updated comment content\",\n  \"is_nsfw\": false,\n  \"is_spoiler\": true,\n  \"flair\": \"Updated Flair\",\n  \"tags\": [\"updated\", \"feedback\"]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/comments/{{comment_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"comments",
+								"{{comment_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Comment",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "X-User-ID",
+								"value": "{{user_id}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/comments/{{comment_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"comments",
+								"{{comment_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Vote Comment",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-User-ID",
+								"value": "{{user_id}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"vote_type\": \"upvote\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/comments/{{comment_id}}/vote",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"comments",
+								"{{comment_id}}",
+								"vote"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Subreddits",
+			"item": [
+				{
+					"name": "Create Subreddit",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-User-ID",
+								"value": "{{user_id}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"programming\",\n  \"display_name\": \"Programming\",\n  \"description\": \"Discussion about programming languages and frameworks\",\n  \"rules\": [\"Be respectful\", \"No spam\", \"Use descriptive titles\"],\n  \"primary_color\": \"#FF4500\",\n  \"secondary_color\": \"#FFFFFF\",\n  \"language\": \"en\",\n  \"country\": \"US\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/subreddits/create",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"subreddits",
+								"create"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Subreddits",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/subreddits?limit=20&offset=0&sort=new",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"subreddits"
+							],
+							"query": [
+								{
+									"key": "limit",
+									"value": "20"
+								},
+								{
+									"key": "offset",
+									"value": "0"
+								},
+								{
+									"key": "sort",
+									"value": "new"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Subreddit by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "X-User-ID",
+								"value": "{{user_id}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/subreddits/{{subreddit_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"subreddits",
+								"{{subreddit_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Subreddit by Name",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "X-User-ID",
+								"value": "{{user_id}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/subreddits/name/{{subreddit_name}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"subreddits",
+								"name",
+								"{{subreddit_name}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Subreddit",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-User-ID",
+								"value": "{{user_id}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"display_name\": \"Programming Community\",\n  \"description\": \"A community for programmers to discuss coding, frameworks, and best practices\",\n  \"rules\": [\"Be respectful and civil\", \"No spam or self-promotion\", \"Use descriptive titles\", \"Follow Reddit guidelines\"],\n  \"primary_color\": \"#FF6B35\",\n  \"secondary_color\": \"#F7F7F7\",\n  \"is_private\": false,\n  \"is_nsfw\": false,\n  \"is_restricted\": false\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/subreddits/{{subreddit_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"subreddits",
+								"{{subreddit_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Join Subreddit",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-User-ID",
+								"value": "{{user_id}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{}"
+						},
+						"url": {
+							"raw": "{{base_url}}/subreddits/{{subreddit_id}}/join",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"subreddits",
+								"{{subreddit_id}}",
+								"join"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Leave Subreddit",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-User-ID",
+								"value": "{{user_id}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{}"
+						},
+						"url": {
+							"raw": "{{base_url}}/subreddits/{{subreddit_id}}/leave",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"subreddits",
+								"{{subreddit_id}}",
+								"leave"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Subreddit Posts",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/subreddits/{{subreddit_id}}/posts?limit=20&offset=0&sort=new",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"subreddits",
+								"{{subreddit_id}}",
+								"posts"
+							],
+							"query": [
+								{
+									"key": "limit",
+									"value": "20"
+								},
+								{
+									"key": "offset",
+									"value": "0"
+								},
+								{
+									"key": "sort",
+									"value": "new"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Add Moderator",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-User-ID",
+								"value": "{{user_id}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"user_id\": \"{{moderator_user_id}}\",\n  \"action\": \"add\",\n  \"role\": \"moderator\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/subreddits/{{subreddit_id}}/moderators",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"subreddits",
+								"{{subreddit_id}}",
+								"moderators"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Remove Moderator",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "X-User-ID",
+								"value": "{{user_id}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/subreddits/{{subreddit_id}}/moderators/{{moderator_user_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"subreddits",
+								"{{subreddit_id}}",
+								"moderators",
+								"{{moderator_user_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Subreddit",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "X-User-ID",
+								"value": "{{user_id}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/subreddits/{{subreddit_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"subreddits",
+								"{{subreddit_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get User Subreddits",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "X-User-ID",
+								"value": "{{user_id}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/subreddits/user/{{user_id}}?limit=20&offset=0&sort=new",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"subreddits",
+								"user",
+								"{{user_id}}"
+							],
+							"query": [
+								{
+									"key": "limit",
+									"value": "20"
+								},
+								{
+									"key": "offset",
+									"value": "0"
+								},
+								{
+									"key": "sort",
+									"value": "new"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Check User Membership",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "X-User-ID",
+								"value": "{{user_id}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/subreddits/{{subreddit_id}}/members/{{user_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"subreddits",
+								"{{subreddit_id}}",
+								"members",
+								"{{user_id}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "News Feeds",
+			"item": [
+				{
+					"name": "Get Feed",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "X-User-ID",
+								"value": "{{user_id}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/feeds?limit=20&offset=0&sort=new",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"feeds"
+							],
+							"query": [
+								{
+									"key": "limit",
+									"value": "20"
+								},
+								{
+									"key": "offset",
+									"value": "0"
+								},
+								{
+									"key": "sort",
+									"value": "new"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Refresh Feed",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "X-User-ID",
+								"value": "{{user_id}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"reason\": \"subreddit_joined\",\n  \"subredditId\": \"{{subreddit_id}}\",\n  \"userId\": \"{{user_id}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/feeds/refresh",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"feeds",
+								"refresh"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Feed Stats",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "X-User-ID",
+								"value": "{{user_id}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/feeds/stats",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"feeds",
+								"stats"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "https://ugn2h0yxwf.execute-api.ap-southeast-1.amazonaws.com/prod",
+			"type": "string"
+		},
+		{
+			"key": "user_id",
+			"value": "user_1757432106_d66ab80f40704b1",
+			"type": "string"
+		},
+		{
+			"key": "access_token",
+			"value": "eyJraWQiOiJwTDliQlM4K2dKVU5OXC9aK3VObGVmcm9VWkdDNFJhNmV5alwvcnN6T3IydW89IiwiYWxnIjoiUlMyNTYifQ.eyJzdWIiOiJmOWJhMTU4Yy1iMDUxLTcwM2UtZGEzZS01ZDNlZDg1MjJiYjUiLCJpc3MiOiJodHRwczpcL1wvY29nbml0by1pZHAuYXAtc291dGhlYXN0LTEuYW1hem9uYXdzLmNvbVwvYXAtc291dGhlYXN0LTFfdGN3SUpTVUZTIiwiY2xpZW50X2lkIjoiMWV0Nm81cWR2ZmdjcmoxOHFxYmdsa3BrbTEiLCJvcmlnaW5fanRpIjoiMzcxMTczYTYtZmMxZC00Mjk1LWFiMmUtY2ExZmE2YTJlMWQyIiwiZXZlbnRfaWQiOiJkMzk5Mzc5ZS0xMmY2LTQxMWEtOTEzZS1lYzU3OWVjYTRlNjAiLCJ0b2tlbl91c2UiOiJhY2Nlc3MiLCJzY29wZSI6ImF3cy5jb2duaXRvLnNpZ25pbi51c2VyLmFkbWluIiwiYXV0aF90aW1lIjoxNzU3NTc4MjUwLCJleHAiOjE3NTc1ODE4NTAsImlhdCI6MTc1NzU3ODI1MCwianRpIjoiOGNhOWNkZDUtMWQxNS00NDMyLTk3OTktMWY4Yzk3NDBhNjQ3IiwidXNlcm5hbWUiOiJ0ZXN0dXNlcjEyMyJ9.xNwl8KsN6xpmvTPPEpySKigkGfM0lKaLSZLICBqGZfGukibIuE8kKZCkL0IFGGP9ATRneT2VKE3sbSzTJQ8fzTIs0yuA1EuKUHCLEw5gwWfI2DKyFXdz57QrNRVAJAake3WjVrEmlKsWT1Ge7KYIE-zBU8CEooe7ppQ4jCmEpA735U4KriqoUpYokUcWFfEx5DQoW08uAobk1-YYUwLOWlZwkGJhyhwtIMYdJvEZCNmD8vK790yHX5i1to01D_NFtheXxpUzIgGykpl5oMeQXAoo7INkYl4YroPBqNYvk0Gmm2HdUnmHsSjpewrOJgcKkhS3nyH6H_ytVN40oAUArg",
+			"type": "string"
+		},
+		{
+			"key": "post_id",
+			"value": "post_1757508287_f8e2cbd7",
+			"type": "string"
+		},
+		{
+			"key": "comment_id",
+			"value": "comment_1757509982_351caa27",
+			"type": "string"
+		},
+		{
+			"key": "subreddit_id",
+			"value": "subreddit_1757518063_01b8625d",
+			"type": "string"
+		},
+		{
+			"key": "subreddit_name",
+			"value": "programming",
+			"type": "string"
+		},
+		{
+			"key": "moderator_user_id",
+			"value": "user_1757485758_cde044d0",
+			"type": "string"
+		}
+	]
+}
