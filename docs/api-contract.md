@@ -1378,7 +1378,8 @@ X-User-ID: <user_id>
   "primary_color": "#FF4500",
   "secondary_color": "#FFFFFF",
   "language": "en",
-  "country": "US"
+  "country": "US",
+  "icon": "https://example.com/icon.png"
 }
 ```
 
@@ -1403,7 +1404,7 @@ X-User-ID: <user_id>
     "is_nsfw": false,
     "is_restricted": false,
     "banner_image": null,
-    "icon_image": null,
+    "icon": null,
     "primary_color": "#FF4500",
     "secondary_color": "#FFFFFF",
     "language": "en",
@@ -1448,7 +1449,7 @@ Lấy danh sách subreddits.
         "is_nsfw": false,
         "is_restricted": false,
         "banner_image": null,
-        "icon_image": null,
+        "icon": null,
         "primary_color": "#FF4500",
         "secondary_color": "#FFFFFF",
         "language": "en",
@@ -1495,7 +1496,7 @@ X-User-ID: <user_id> (optional)
     "is_nsfw": false,
     "is_restricted": false,
     "banner_image": null,
-    "icon_image": null,
+    "icon": null,
     "primary_color": "#FF4500",
     "secondary_color": "#FFFFFF",
     "language": "en",
@@ -1537,7 +1538,7 @@ X-User-ID: <user_id> (optional)
     "is_nsfw": false,
     "is_restricted": false,
     "banner_image": null,
-    "icon_image": null,
+    "icon": null,
     "primary_color": "#FF4500",
     "secondary_color": "#FFFFFF",
     "language": "en",
@@ -1569,7 +1570,8 @@ X-User-ID: <user_id>
   "secondary_color": "#F7F7F7",
   "is_private": false,
   "is_nsfw": false,
-  "is_restricted": false
+  "is_restricted": false,
+  "icon": "https://example.com/new-icon.png"
 }
 ```
 
@@ -1594,7 +1596,7 @@ X-User-ID: <user_id>
     "is_nsfw": false,
     "is_restricted": false,
     "banner_image": null,
-    "icon_image": null,
+    "icon": null,
     "primary_color": "#FF6B35",
     "secondary_color": "#F7F7F7",
     "language": "en",
@@ -1783,7 +1785,7 @@ Lấy danh sách subreddits mà user đã subscribe.
         "is_nsfw": false,
         "is_restricted": false,
         "banner_image": null,
-        "icon_image": null,
+        "icon": null,
         "primary_color": "#FF6B35",
         "secondary_color": "#F7F7F7",
         "language": "en",

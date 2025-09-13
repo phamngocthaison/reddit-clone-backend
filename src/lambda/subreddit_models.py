@@ -18,6 +18,7 @@ class CreateSubredditRequest(BaseModel):
     secondary_color: str = Field(default="#FFFFFF", description="Secondary color")
     language: str = Field(default="en", description="Language")
     country: str = Field(default="US", description="Country")
+    icon: Optional[str] = Field(None, description="Subreddit icon URL")
 
     @validator('name')
     def validate_name(cls, v):
@@ -48,6 +49,7 @@ class UpdateSubredditRequest(BaseModel):
     secondary_color: Optional[str] = Field(None)
     language: Optional[str] = Field(None)
     country: Optional[str] = Field(None)
+    icon: Optional[str] = Field(None, description="Subreddit icon URL")
 
     @validator('primary_color', 'secondary_color')
     def validate_color(cls, v):
@@ -79,7 +81,7 @@ class SubredditResponse(BaseModel):
     is_nsfw: bool
     is_restricted: bool
     banner_image: Optional[str] = None
-    icon_image: Optional[str] = None
+    icon: Optional[str] = None
     primary_color: str
     secondary_color: str
     language: str

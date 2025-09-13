@@ -828,7 +828,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"name\": \"programming\",\n  \"display_name\": \"Programming\",\n  \"description\": \"Discussion about programming languages and frameworks\",\n  \"rules\": [\"Be respectful\", \"No spam\", \"Use descriptive titles\"],\n  \"primary_color\": \"#FF4500\",\n  \"secondary_color\": \"#FFFFFF\",\n  \"language\": \"en\",\n  \"country\": \"US\"\n}"
+							"raw": "{\n  \"name\": \"programming\",\n  \"display_name\": \"Programming\",\n  \"description\": \"Discussion about programming languages and frameworks\",\n  \"rules\": [\"Be respectful\", \"No spam\", \"Use descriptive titles\"],\n  \"primary_color\": \"#FF4500\",\n  \"secondary_color\": \"#FFFFFF\",\n  \"language\": \"en\",\n  \"country\": \"US\",\n  \"icon\": \"https://example.com/icon.png\"\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/subreddits/create",
@@ -937,7 +937,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"display_name\": \"Programming Community\",\n  \"description\": \"A community for programmers to discuss coding, frameworks, and best practices\",\n  \"rules\": [\"Be respectful and civil\", \"No spam or self-promotion\", \"Use descriptive titles\", \"Follow Reddit guidelines\"],\n  \"primary_color\": \"#FF6B35\",\n  \"secondary_color\": \"#F7F7F7\",\n  \"is_private\": false,\n  \"is_nsfw\": false,\n  \"is_restricted\": false\n}"
+							"raw": "{\n  \"display_name\": \"Programming Community\",\n  \"description\": \"A community for programmers to discuss coding, frameworks, and best practices\",\n  \"rules\": [\"Be respectful and civil\", \"No spam or self-promotion\", \"Use descriptive titles\", \"Follow Reddit guidelines\"],\n  \"primary_color\": \"#FF6B35\",\n  \"secondary_color\": \"#F7F7F7\",\n  \"is_private\": false,\n  \"is_nsfw\": false,\n  \"is_restricted\": false,\n  \"icon\": \"https://example.com/new-icon.png\"\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/subreddits/{{subreddit_id}}",

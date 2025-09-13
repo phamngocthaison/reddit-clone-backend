@@ -44,6 +44,7 @@ This project uses the following AWS services:
 - [x] Join/Leave subreddits
 - [x] Moderator management
 - [x] Subreddit posts filtering
+- [x] Subreddit customization (colors, icons, banners)
 
 ### Phase 4 - News Feeds ✅
 - [x] Personalized news feeds
