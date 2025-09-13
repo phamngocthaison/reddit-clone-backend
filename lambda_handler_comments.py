@@ -137,6 +137,7 @@ class CommentType(str, Enum):
     VIDEO = "video"
     LINK = "link"
     COMMENT = "comment"
+    REPLY = "reply"
 
 class CommentBase(BaseModel):
     content: str
