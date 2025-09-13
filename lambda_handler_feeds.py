@@ -5,7 +5,15 @@ Handles all feed-related API endpoints.
 
 import json
 import os
+import sys
 from typing import Dict, Any
+
+# Add current directory and python directory to Python path for imports
+current_dir = os.path.dirname(__file__)
+python_dir = os.path.join(current_dir, 'python')
+sys.path.insert(0, current_dir)
+sys.path.insert(0, python_dir)
+
 from feed_models import (
     GetFeedRequest, GetFeedResponse, RefreshFeedRequest, RefreshFeedResponse,
     GetFeedStatsResponse, ErrorResponse, SortType
