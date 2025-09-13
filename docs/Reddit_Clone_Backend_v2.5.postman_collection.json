@@ -1,8 +1,8 @@
 {
 	"info": {
-		"_postman_id": "reddit-clone-backend-v2.4",
-		"name": "Reddit Clone Backend v2.4",
-		"description": "Complete API collection for Reddit Clone Backend with User Profile support",
+		"_postman_id": "reddit-clone-backend-v2.5",
+		"name": "Reddit Clone Backend v2.5",
+		"description": "Complete API collection for Reddit Clone Backend with User Profile support and Reply Comments",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
 		"_exporter_id": "reddit-clone-backend"
 	},
@@ -594,6 +594,41 @@
 						"body": {
 							"mode": "raw",
 							"raw": "{\n  \"post_id\": \"{{post_id}}\",\n  \"content\": \"This is a great post! Thanks for sharing.\",\n  \"parent_id\": null,\n  \"comment_type\": \"comment\",\n  \"is_nsfw\": false,\n  \"is_spoiler\": false,\n  \"flair\": \"Discussion\",\n  \"tags\": [\"feedback\", \"positive\"]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/comments/create",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"comments",
+								"create"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Reply Comment",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-User-ID",
+								"value": "{{user_id}}"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"post_id\": \"{{post_id}}\",\n  \"content\": \"I agree with your point! This is a great insight.\",\n  \"parent_id\": \"\",\n  \"comment_type\": \"reply\",\n  \"is_nsfw\": false,\n  \"is_spoiler\": false,\n  \"flair\": \"Agreement\",\n  \"tags\": [\"agreement\", \"support\"]\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/comments/create",
