@@ -86,8 +86,8 @@ def get_user_id_from_event(event: Dict[str, Any]) -> Optional[str]:
         # In production, decode JWT token to get user ID
         pass
     
-    # Use X-User-ID header for testing
-    return headers.get("X-User-ID")
+    # Use X-User-ID header for testing (case insensitive)
+    return headers.get("X-User-ID") or headers.get("x-user-id")
 
 
 def parse_request_body(event: Dict[str, Any]) -> Dict[str, Any]:

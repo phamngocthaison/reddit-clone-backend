@@ -43,12 +43,21 @@ class UserProfileService:
                 raise ValueError("User not found")
             
             # Convert DynamoDB item to UserProfile
+            def parse_datetime(dt_str: str) -> datetime:
+                """Parse datetime string handling various formats."""
+                # Remove double timezone if present
+                if dt_str.endswith("+00:00Z"):
+                    dt_str = dt_str.replace("+00:00Z", "Z")
+                elif dt_str.endswith("Z"):
+                    dt_str = dt_str.replace("Z", "+00:00")
+                return datetime.fromisoformat(dt_str)
+            
             return UserProfile(
                 userId=user_data["userId"],
                 email=user_data["email"],
                 username=user_data["username"],
-                createdAt=datetime.fromisoformat(user_data["createdAt"].replace("Z", "+00:00")),
-                updatedAt=datetime.fromisoformat(user_data["updatedAt"].replace("Z", "+00:00")),
+                createdAt=parse_datetime(user_data["createdAt"]),
+                updatedAt=parse_datetime(user_data["updatedAt"]),
                 isActive=user_data.get("isActive", True),
                 displayName=user_data.get("displayName"),
                 bio=user_data.get("bio"),
@@ -194,8 +203,8 @@ class UserProfileService:
         try:
             # Query posts by user ID
             response = self.posts_table.query(
-                IndexName="UserIndex",
-                KeyConditionExpression="userId = :user_id",
+                IndexName="AuthorIndex",
+                KeyConditionExpression="authorId = :user_id",
                 ExpressionAttributeValues={":user_id": user_id},
                 ScanIndexForward=False,  # Sort by creation time descending
                 Limit=request.limit
@@ -231,10 +240,10 @@ class UserProfileService:
             return UserPostsResponse(
                 posts=paginated_posts,
                 count=len(paginated_posts),
-                user_id=user_id,
+                userId=user_id,
                 limit=request.limit,
                 offset=request.offset,
-                has_more=len(posts) > end_index
+                hasMore=len(posts) > end_index
             )
             
         except ClientError as e:
@@ -246,8 +255,8 @@ class UserProfileService:
         try:
             # Query comments by user ID
             response = self.comments_table.query(
-                IndexName="UserIndex",
-                KeyConditionExpression="userId = :user_id",
+                IndexName="AuthorIndex",
+                KeyConditionExpression="authorId = :user_id",
                 ExpressionAttributeValues={":user_id": user_id},
                 ScanIndexForward=False,  # Sort by creation time descending
                 Limit=request.limit
@@ -280,10 +289,10 @@ class UserProfileService:
             return UserCommentsResponse(
                 comments=paginated_comments,
                 count=len(paginated_comments),
-                user_id=user_id,
+                userId=user_id,
                 limit=request.limit,
                 offset=request.offset,
-                has_more=len(comments) > end_index
+                hasMore=len(comments) > end_index
             )
             
         except ClientError as e:
