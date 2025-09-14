@@ -782,10 +782,12 @@ class RedditCloneStack(cdk.Stack):
         auth_me_resource.add_method("GET", user_profile_integration)
         auth_me_resource.add_method("PUT", user_profile_integration)
         auth_me_resource.add_method("DELETE", user_profile_integration)
+        auth_me_resource.add_method("OPTIONS", user_profile_integration)
         
         # Change password endpoint
         auth_change_password_resource = auth_resource.add_resource("change-password")
         auth_change_password_resource.add_method("PUT", user_profile_integration)
+        auth_change_password_resource.add_method("OPTIONS", user_profile_integration)
         
         # Users endpoints (public user profiles)
         users_resource = api.root.add_resource("users")

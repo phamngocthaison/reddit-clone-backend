@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CORS Test for /me API</title>
+</head>
+<body>
+    <h1>CORS Test for /me API</h1>
+    <button onclick="testMeAPI()">Test /me API</button>
+    <div id="result"></div>
+
+    <script>
+        async function testMeAPI() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'Testing...';
+            
+            try {
+                const response = await fetch('https://ugn2h0yxwf.execute-api.ap-southeast-1.amazonaws.com/prod/auth/me', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': 'Bearer eyJraWQiOiJwTDliQlM4K2dKVU5OXC9aK3VObGVmcm9VWkdDNFJhNmV5alwvcnN6T3IydW89IiwiYWxnIjoiUlMyNTYifQ.eyJzdWIiOiJmOWJhMTU4Yy1iMDUxLTcwM2UtZGEzZS01ZDNlZDg1MjJiYjUiLCJpc3MiOiJodHRwczpcL1wvY29nbml0by1pZHAuYXAtc291dGhlYXN0LTEuYW1hem9uYXdzLmNvbVwvYXAtc291dGhlYXN0LTFfdGN3SUpTVUZTIiwiY2xpZW50X2lkIjoiMWV0Nm81cWR2ZmdjcmoxOHFxYmdsa3BrbTEiLCJvcmlnaW5fanRpIjoiNjkyMmY1MzQtOTUwZi00ZmIxLTkyMmQtOTE2NWVhZmNjYjUwIiwiZXZlbnRfaWQiOiIxODk4YmEyNi00YmY3LTRlY2YtYTNhZS1jNTliZjZkOTJkZDAiLCJ0b2tlbl91c2UiOiJhY2Nlc3MiLCJzY29wZSI6ImF3cy5jb2duaXRvLnNpZ25pbi51c2VyLmFkbWluIiwiYXV0aF90aW1lIjoxNzU3ODI1NjcxLCJleHAiOjE3NTc4MjkyNzEsImlhdCI6MTc1NzgyNTY3MSwianRpIjoiNDczMWNiYzEtMTdhZi00ZjhlLThhZjMtNDAzMzlmNzFlNmMwIiwidXNlcm5hbWUiOiJ0ZXN0dXNlcjEyMyJ9.CIHu4lF5zC_3qnFaHaRwfXLmSybRhg2H2PeH6TqV_NPkwROfW3PaGfPHgZIo9B6sY_pcx2AtxMVT2-eavboe-UCBvUYuLgbKKi_RnrtrY91nMcga6OCyT9bm8wxV_FLLQr5Y3I3oBbct9l9JCE3eJBVZlfqUDVmgxLVkFQHzOU7lzLVRRoIfTERHL5vVst3xDfUmTa4lEdsdloB0hdPaayplOk3XRmyXWA8JTLWE8CkUlZCya9VD1HpkHGCWkfBg-rmdVzjyv17d64BXWZi0BSjM3uYoK_zulzZdexmdS0flVITXGXZ2EQAfEtuKzH4NqWkGvqh3YGf2oAhF_5W5tA',
+                        'X-User-ID': 'user_1757432106_d66ab80f40704b1',
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    resultDiv.innerHTML = `
+                        <h3>✅ Success!</h3>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <h3>❌ Error: ${response.status}</h3>
+                        <p>${await response.text()}</p>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <h3>❌ CORS Error</h3>
+                    <p>${error.message}</p>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>
