@@ -153,10 +153,10 @@ class UserPostsResponse(BaseModel):
     
     posts: List[Dict[str, Any]]
     count: int
-    user_id: str = Field(..., alias="userId")
+    user_id: str
     limit: int
     offset: int
-    has_more: bool = Field(..., alias="hasMore")
+    has_more: bool
 
 
 class UserCommentsResponse(BaseModel):
@@ -164,11 +164,7 @@ class UserCommentsResponse(BaseModel):
     
     comments: List[Dict[str, Any]]
     count: int
-    user_id: str = Field(..., alias="userId")
+    user_id: str
     limit: int
     offset: int
-    has_more: bool = Field(..., alias="hasMore")
-    
-    class Config:
-        """Pydantic configuration."""
-        populate_by_name = True
+    has_more: bool

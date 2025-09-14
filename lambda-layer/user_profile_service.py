@@ -2,6 +2,7 @@
 
 import logging
 import os
+import re
 import boto3
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional, List
@@ -20,6 +21,34 @@ from user_profile_models import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def camel_to_snake(name: str) -> str:
+    """Convert camelCase to snake_case."""
+    # Insert an underscore before any uppercase letter that follows a lowercase letter
+    s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
+    # Insert an underscore before any uppercase letter that follows a lowercase letter or digit
+    return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
+
+
+def convert_dict_keys_to_snake_case(data: Dict[str, Any]) -> Dict[str, Any]:
+    """Convert all keys in a dictionary from camelCase to snake_case."""
+    if not isinstance(data, dict):
+        return data
+    
+    result = {}
+    for key, value in data.items():
+        snake_key = camel_to_snake(key)
+        if isinstance(value, dict):
+            result[snake_key] = convert_dict_keys_to_snake_case(value)
+        elif isinstance(value, list):
+            result[snake_key] = [
+                convert_dict_keys_to_snake_case(item) if isinstance(item, dict) else item
+                for item in value
+            ]
+        else:
+            result[snake_key] = value
+    return result
 
 
 class UserProfileService:
@@ -267,13 +296,16 @@ class UserProfileService:
                     if hasattr(value, 'as_tuple'):  # Decimal object
                         post[key] = int(value) if value % 1 == 0 else float(value)
             
+            # Convert all post keys to snake_case
+            converted_posts = [convert_dict_keys_to_snake_case(post) for post in paginated_posts]
+            
             return UserPostsResponse(
-                posts=paginated_posts,
+                posts=converted_posts,
                 count=len(paginated_posts),
-                userId=user_id,
+                user_id=user_id,
                 limit=request.limit,
                 offset=request.offset,
-                hasMore=len(posts) > end_index
+                has_more=len(posts) > end_index
             )
             
         except ClientError as e:
@@ -316,13 +348,16 @@ class UserProfileService:
                     if hasattr(value, 'as_tuple'):  # Decimal object
                         comment[key] = int(value) if value % 1 == 0 else float(value)
             
+            # Convert all comment keys to snake_case
+            converted_comments = [convert_dict_keys_to_snake_case(comment) for comment in paginated_comments]
+            
             return UserCommentsResponse(
-                comments=paginated_comments,
+                comments=converted_comments,
                 count=len(paginated_comments),
-                userId=user_id,
+                user_id=user_id,
                 limit=request.limit,
                 offset=request.offset,
-                hasMore=len(comments) > end_index
+                has_more=len(comments) > end_index
             )
             
         except ClientError as e:
