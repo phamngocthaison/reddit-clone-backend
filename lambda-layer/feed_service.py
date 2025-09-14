@@ -283,7 +283,9 @@ class FeedService:
     
     def _calculate_hot_score(self, post: Dict[str, Any]) -> float:
         """Calculate hot score based on Reddit's algorithm."""
-        score = post.get('upvotes', 0) - post.get('downvotes', 0)
+        upvotes = int(post.get('upvotes', 0))
+        downvotes = int(post.get('downvotes', 0))
+        score = upvotes - downvotes
         created_at = post.get('createdAt', '')
         
         if not created_at:
@@ -304,8 +306,8 @@ class FeedService:
     
     def _calculate_trending_score(self, post: Dict[str, Any]) -> float:
         """Calculate trending score based on recent activity."""
-        score = post.get('score', 0)
-        comments_count = post.get('commentsCount', 0)
+        score = float(post.get('score', 0))
+        comments_count = int(post.get('commentsCount', 0))
         
         # Simple trending calculation based on comments
         trending_boost = comments_count * 0.1
@@ -337,6 +339,8 @@ class FeedService:
                 postTitle=post.get('title', ''),
                 postContent=post.get('content', '')[:200] + '...' if len(post.get('content', '')) > 200 else post.get('content', ''),
                 postImageUrl=post.get('imageUrl'),
+                postUrl=post.get('url'),
+                postType=post.get('postType', 'text'),
                 subredditName=subreddit_name,
                 authorName=author_name,
                 upvotes=post.get('upvotes', 0),
@@ -545,7 +549,7 @@ class FeedService:
             if not response['Items']:
                 return 0.0
             
-            total_score = sum(item['postScore'] for item in response['Items'])
+            total_score = sum(float(item['postScore']) for item in response['Items'])
             return total_score / len(response['Items'])
         except ClientError:
             return 0.0

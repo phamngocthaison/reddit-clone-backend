@@ -32,6 +32,8 @@ class FeedItem(BaseModel):
     postTitle: str = Field(..., description="Post title")
     postContent: str = Field(..., description="Post content preview")
     postImageUrl: Optional[str] = Field(None, description="Post image URL")
+    postUrl: Optional[str] = Field(None, description="Post URL for link posts")
+    postType: str = Field(..., description="Post type (text, link, image, video)")
     subredditName: str = Field(..., description="Subreddit name")
     authorName: str = Field(..., description="Author username")
     upvotes: int = Field(0, description="Post upvotes")
