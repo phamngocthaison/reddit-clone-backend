@@ -33,6 +33,33 @@ class UserProfileService:
         self.comments_table = self.aws_clients.dynamodb.Table(os.getenv("COMMENTS_TABLE_NAME"))
         self.cognito_client = self.aws_clients.get_cognito_client()
     
+    async def calculate_user_stats(self, user_id: str) -> tuple[int, int]:
+        """Calculate actual post and comment counts for user."""
+        try:
+            # Count posts
+            posts_response = self.posts_table.query(
+                IndexName="AuthorIndex",
+                KeyConditionExpression="authorId = :user_id",
+                ExpressionAttributeValues={":user_id": user_id},
+                Select="COUNT"
+            )
+            post_count = posts_response.get("Count", 0)
+            
+            # Count comments
+            comments_response = self.comments_table.query(
+                IndexName="AuthorIndex",
+                KeyConditionExpression="authorId = :user_id",
+                ExpressionAttributeValues={":user_id": user_id},
+                Select="COUNT"
+            )
+            comment_count = comments_response.get("Count", 0)
+            
+            return post_count, comment_count
+            
+        except ClientError as e:
+            logger.error(f"Error calculating user stats: {e}")
+            return 0, 0
+
     async def get_user_profile(self, user_id: str) -> UserProfile:
         """Get user profile by user ID."""
         try:
@@ -41,6 +68,9 @@ class UserProfileService:
             
             if not user_data:
                 raise ValueError("User not found")
+            
+            # Calculate actual stats
+            actual_post_count, actual_comment_count = await self.calculate_user_stats(user_id)
             
             # Convert DynamoDB item to UserProfile
             def parse_datetime(dt_str: str) -> datetime:
@@ -63,8 +93,8 @@ class UserProfileService:
                 bio=user_data.get("bio"),
                 avatar=user_data.get("avatar"),
                 karma=user_data.get("karma", 0),
-                postCount=user_data.get("postCount", 0),
-                commentCount=user_data.get("commentCount", 0),
+                postCount=actual_post_count,  # Use calculated count
+                commentCount=actual_comment_count,  # Use calculated count
                 isPublic=user_data.get("isPublic", True),
                 showEmail=user_data.get("showEmail", False)
             )
