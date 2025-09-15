@@ -116,7 +116,7 @@ class UserProfileService:
                 email=user_data["email"],
                 username=user_data["username"],
                 createdAt=parse_datetime(user_data["createdAt"]),
-                updatedAt=parse_datetime(user_data["updatedAt"]),
+                updatedAt=parse_datetime(user_data.get("updatedAt", user_data["createdAt"])),  # Use createdAt as fallback
                 isActive=user_data.get("isActive", True),
                 displayName=user_data.get("displayName"),
                 bio=user_data.get("bio"),

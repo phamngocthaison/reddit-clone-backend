@@ -39,7 +39,7 @@ posts_table = dynamodb.Table(POSTS_TABLE) if POSTS_TABLE else None
 subreddits_table = dynamodb.Table(SUBREDDITS_TABLE) if SUBREDDITS_TABLE else None
 
 # Authentication configuration
-AUTH_MODE = os.environ.get('AUTH_MODE', 'hybrid')  # 'jwt', 'x-user-id', 'hybrid'
+AUTH_MODE = os.environ.get('AUTH_MODE', 'x-user-id')  # 'jwt', 'x-user-id', 'hybrid'
 
 # ============================================================================
 # AUTHENTICATION MODELS
