@@ -2,9 +2,16 @@
 
 import boto3
 import uuid
+import json
+import logging
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 from botocore.exceptions import ClientError
+from decimal import Decimal
+
+# Configure logger
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 from subreddit_models import (
     CreateSubredditRequest,
@@ -19,6 +26,16 @@ from subreddit_models import (
     BanUserRequest,
     SubredditStatsResponse
 )
+
+def convert_decimals(obj):
+    """Convert Decimal objects to int/float for JSON serialization."""
+    if isinstance(obj, Decimal):
+        return int(obj) if obj % 1 == 0 else float(obj)
+    elif isinstance(obj, dict):
+        return {k: convert_decimals(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [convert_decimals(item) for item in obj]
+    return obj
 
 
 class SubredditService:
@@ -61,7 +78,7 @@ class SubredditService:
                 'isNSFW': request.is_nsfw,
                 'isRestricted': request.is_restricted,
                 'bannerImage': None,
-                'iconImage': None,
+                'icon': request.icon,
                 'primaryColor': request.primary_color,
                 'secondaryColor': request.secondary_color,
                 'language': request.language,
@@ -434,14 +451,88 @@ class SubredditService:
                 # Sort by ratio of upvotes to downvotes
                 posts.sort(key=lambda x: x.get('upvotes', 0) / max(x.get('downvotes', 1), 1), reverse=True)
 
+            # Convert Decimal objects to int/float for JSON serialization
+            posts = convert_decimals(posts)
+            
+            # Add author usernames and convert to snake_case
+            processed_posts = []
+            for post in posts:
+                # Get author username
+                author_username = self._get_author_username(post.get('authorId'))
+                
+                # Add author username to post
+                post['authorUsername'] = author_username
+                
+                # Convert to snake_case
+                post_snake_case = self._convert_post_to_snake_case(post)
+                processed_posts.append(post_snake_case)
+            
             return {
-                'posts': posts,
-                'count': len(posts),
+                'posts': processed_posts,
+                'count': len(processed_posts),
                 'subreddit_id': subreddit_id
             }
 
         except ClientError as e:
             raise Exception(f"Failed to get subreddit posts: {str(e)}")
+
+    def _get_author_username(self, author_id: str) -> str:
+        """Get author username from author ID."""
+        try:
+            if not author_id:
+                return "Unknown"
+            
+            # Check if it's a database user ID (starts with 'user_')
+            if author_id.startswith('user_'):
+                response = self.users_table.get_item(Key={"userId": author_id})
+                user_data = response.get("Item")
+                if user_data:
+                    return user_data.get("username", "Unknown")
+            
+            # Check if it's a Cognito User ID (UUID format)
+            elif len(author_id) == 36 and '-' in author_id:
+                # Try to find user by cognitoUserId
+                response = self.users_table.scan(
+                    FilterExpression="cognitoUserId = :cognito_id",
+                    ExpressionAttributeValues={":cognito_id": author_id}
+                )
+                if response.get('Items'):
+                    return response['Items'][0].get('username', 'Unknown')
+            
+            return "Unknown"
+            
+        except Exception as e:
+            logger.error(f"Error getting author username: {e}")
+            return "Unknown"
+
+    def _convert_post_to_snake_case(self, post: Dict[str, Any]) -> Dict[str, Any]:
+        """Convert post fields from camelCase to snake_case."""
+        snake_case_post = {}
+        
+        # Field mapping from camelCase to snake_case
+        field_mapping = {
+            'postId': 'post_id',
+            'authorId': 'author_id',
+            'authorUsername': 'author_username',
+            'subredditId': 'subreddit_id',
+            'postType': 'post_type',
+            'mediaUrls': 'media_urls',
+            'commentCount': 'comment_count',
+            'viewCount': 'view_count',
+            'createdAt': 'created_at',
+            'updatedAt': 'updated_at',
+            'isDeleted': 'is_deleted',
+            'isLocked': 'is_locked',
+            'isSticky': 'is_sticky',
+            'isNsfw': 'is_nsfw',
+            'isSpoiler': 'is_spoiler'
+        }
+        
+        for key, value in post.items():
+            snake_key = field_mapping.get(key, key)
+            snake_case_post[snake_key] = value
+            
+        return snake_case_post
 
     def add_moderator(self, subreddit_id: str, request: ModeratorRequest, user_id: str) -> bool:
         """Add moderator to subreddit."""
@@ -561,7 +652,7 @@ class SubredditService:
             is_nsfw=item.get('isNSFW', False),
             is_restricted=item.get('isRestricted', False),
             banner_image=item.get('bannerImage'),
-            icon_image=item.get('iconImage'),
+            icon=item.get('icon'),
             primary_color=item.get('primaryColor', '#FF4500'),
             secondary_color=item.get('secondaryColor', '#FFFFFF'),
             language=item.get('language', 'en'),
@@ -569,3 +660,137 @@ class SubredditService:
             is_subscribed=is_subscribed,
             user_role=user_role
         )
+
+    async def get_user_subreddits(self, user_id: str, limit: int = 20, offset: int = 0, sort: str = 'new') -> Dict[str, Any]:
+        """Get user's subscribed subreddits."""
+        try:
+            # Get user's subscriptions
+            subscriptions = self._get_user_subscriptions(user_id)
+            logger.info(f"Subscriptions for user {user_id}: {subscriptions}")
+            
+            if not subscriptions:
+                return {
+                    "subreddits": [],
+                    "pagination": {
+                        "limit": limit,
+                        "offset": offset,
+                        "total": 0,
+                        "has_more": False,
+                        "next_offset": None
+                    }
+                }
+
+            # Get subreddit IDs
+            subreddit_ids = [sub['subredditId'] for sub in subscriptions]
+            
+            # Get subreddit details
+            subreddits = []
+            for subreddit_id in subreddit_ids:
+                try:
+                    subreddit = self.get_subreddit(subreddit_id)
+                    # Find subscription details
+                    subscription = next((s for s in subscriptions if s['subredditId'] == subreddit_id), None)
+                    # Update the subreddit with subscription info
+                    subreddit.is_subscribed = True
+                    subreddit.user_role = subscription.get('role', 'subscriber') if subscription else None
+                    subreddits.append(subreddit)
+                except Exception as e:
+                    logger.warning(f"Failed to get subreddit {subreddit_id}: {e}")
+                    continue
+
+            # Sort subreddits
+            if sort == 'name':
+                subreddits.sort(key=lambda x: x.name.lower())
+            elif sort == 'old':
+                subreddits.sort(key=lambda x: x.created_at)
+            else:  # 'new' or default
+                subreddits.sort(key=lambda x: x.created_at, reverse=True)
+
+            # Apply pagination
+            total = len(subreddits)
+            paginated_subreddits = subreddits[offset:offset + limit]
+            has_more = offset + limit < total
+            next_offset = offset + limit if has_more else None
+
+            # Convert subreddits to dict with proper serialization
+            subreddit_dicts = []
+            for sub in paginated_subreddits:
+                try:
+                    sub_dict = sub.dict()
+                    logger.info(f"Subreddit dict: {sub_dict}")
+                    subreddit_dicts.append(sub_dict)
+                except Exception as e:
+                    logger.error(f"Error serializing subreddit {sub.subreddit_id}: {e}")
+                    continue
+            
+            return {
+                "subreddits": subreddit_dicts,
+                "pagination": {
+                    "limit": limit,
+                    "offset": offset,
+                    "total": total,
+                    "has_more": has_more,
+                    "next_offset": next_offset
+                }
+            }
+
+        except Exception as e:
+            logger.error(f"Error getting user subreddits: {e}")
+            raise e
+
+    async def check_user_membership(self, subreddit_id: str, user_id: str) -> Dict[str, Any]:
+        """Check if user is member of subreddit."""
+        try:
+            # Check if user is subscribed
+            subscription = self._get_user_subscription(user_id, subreddit_id)
+            
+            if subscription:
+                return {
+                    "is_member": True,
+                    "role": subscription.get('role', 'subscriber'),
+                    "joined_at": subscription.get('joinedAt'),
+                    "is_active": subscription.get('isActive', True)
+                }
+            
+            # Check if user is owner or moderator
+            try:
+                subreddit = self.get_subreddit(subreddit_id)
+                if subreddit.owner_id == user_id:
+                    return {
+                        "is_member": True,
+                        "role": "owner",
+                        "joined_at": subreddit.created_at,
+                        "is_active": True
+                    }
+                elif user_id in subreddit.moderators:
+                    return {
+                        "is_member": True,
+                        "role": "moderator",
+                        "joined_at": subreddit.created_at,  # Approximate
+                        "is_active": True
+                    }
+            except Exception:
+                pass
+            
+            return {
+                "is_member": False,
+                "role": None,
+                "joined_at": None,
+                "is_active": False
+            }
+
+        except Exception as e:
+            logger.error(f"Error checking user membership: {e}")
+            raise e
+
+    def _get_user_subscriptions(self, user_id: str) -> List[Dict[str, Any]]:
+        """Get all subscriptions for a user."""
+        try:
+            response = self.subscriptions_table.query(
+                IndexName='UserIndex',
+                KeyConditionExpression='userId = :user_id',
+                ExpressionAttributeValues={':user_id': user_id}
+            )
+            return response['Items']
+        except ClientError:
+            return []

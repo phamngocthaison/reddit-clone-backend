@@ -54,7 +54,13 @@ class CommentBase(BaseModel):
 
 class CreateCommentRequest(CommentBase):
     """Request model for creating a comment"""
-    post_id: str = Field(..., description="Post ID this comment belongs to")
+    post_id: str = Field(..., min_length=1, description="Post ID this comment belongs to")
+    
+    @validator('post_id')
+    def validate_post_id(cls, v):
+        if not v or not v.strip():
+            raise ValueError('Post ID cannot be empty')
+        return v.strip()
     
     class Config:
         schema_extra = {
@@ -148,6 +154,8 @@ class CommentResponse(BaseModel):
     tags: List[str] = Field(..., description="Comment tags")
     awards: List[Dict[str, Any]] = Field(..., description="Comment awards")
     user_vote: Optional[str] = Field(None, description="Current user's vote")
+    subreddit_id: str = Field(..., description="Subreddit ID")
+    subreddit_name: str = Field(..., description="Subreddit name")
     replies: List['CommentResponse'] = Field(default_factory=list, description="Nested replies")
     
     class Config:
@@ -175,6 +183,8 @@ class CommentResponse(BaseModel):
                 "tags": ["feedback", "positive"],
                 "awards": [],
                 "user_vote": "upvote",
+                "subreddit_id": "subreddit_1757518063_01b8625d",
+                "subreddit_name": "programming",
                 "replies": []
             }
         }

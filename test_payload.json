@@ -1,0 +1,1 @@
+{"httpMethod": "POST", "path": "/posts/create", "body": "{\"title\": \"Test\", \"content\": \"Test\", \"subreddit_id\": \"subreddit_1757872745_cce339f3\", \"post_type\": \"text\"}", "headers": {"Content-Type": "application/json", "X-User-ID": "user_1757432106_d66ab80f40704b1"}}

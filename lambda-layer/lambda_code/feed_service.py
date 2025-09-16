@@ -6,9 +6,17 @@ Handles feed generation, caching, and user following functionality.
 import os
 import json
 import boto3
+import sys
 from datetime import datetime, timedelta
 from typing import List, Dict, Any, Optional, Tuple
 from botocore.exceptions import ClientError
+
+# Add current directory and python directory to Python path for imports
+current_dir = os.path.dirname(__file__)
+python_dir = os.path.join(current_dir, 'python')
+sys.path.insert(0, current_dir)
+sys.path.insert(0, python_dir)
+
 from feed_models import (
     FeedItem, GetFeedRequest, GetFeedResponse, FeedData, PaginationInfo, 
     FeedMetadata, RefreshFeedRequest, RefreshFeedResponse, RefreshFeedData,
@@ -30,6 +38,7 @@ class FeedService:
         self.posts_table = self.dynamodb.Table(os.environ['POSTS_TABLE'])
         self.subreddits_table = self.dynamodb.Table(os.environ['SUBREDDITS_TABLE'])
         self.users_table = self.dynamodb.Table(os.environ['USERS_TABLE'])
+        self.comments_table = self.dynamodb.Table(os.environ['COMMENTS_TABLE'])
     
     def get_user_feed(self, user_id: str, request: GetFeedRequest) -> GetFeedResponse:
         """Get personalized feed for user."""
@@ -274,7 +283,9 @@ class FeedService:
     
     def _calculate_hot_score(self, post: Dict[str, Any]) -> float:
         """Calculate hot score based on Reddit's algorithm."""
-        score = post.get('upvotes', 0) - post.get('downvotes', 0)
+        upvotes = int(post.get('upvotes', 0))
+        downvotes = int(post.get('downvotes', 0))
+        score = upvotes - downvotes
         created_at = post.get('createdAt', '')
         
         if not created_at:
@@ -295,8 +306,8 @@ class FeedService:
     
     def _calculate_trending_score(self, post: Dict[str, Any]) -> float:
         """Calculate trending score based on recent activity."""
-        score = post.get('score', 0)
-        comments_count = post.get('commentsCount', 0)
+        score = float(post.get('score', 0))
+        comments_count = int(post.get('commentsCount', 0))
         
         # Simple trending calculation based on comments
         trending_boost = comments_count * 0.1
@@ -317,6 +328,9 @@ class FeedService:
             # Get author name
             author_name = self._get_author_name(post.get('authorId', ''))
             
+            # Get actual comments count
+            comments_count = self._get_post_comments_count(post.get('postId', ''))
+            
             feed_item = FeedItem(
                 feedId=f"feed_{post.get('authorId', '')}_{post.get('createdAt', '')}_{post.get('postId', '')}",
                 postId=post.get('postId', ''),
@@ -325,11 +339,13 @@ class FeedService:
                 postTitle=post.get('title', ''),
                 postContent=post.get('content', '')[:200] + '...' if len(post.get('content', '')) > 200 else post.get('content', ''),
                 postImageUrl=post.get('imageUrl'),
+                postUrl=post.get('url'),
+                postType=post.get('postType', 'text'),
                 subredditName=subreddit_name,
                 authorName=author_name,
                 upvotes=post.get('upvotes', 0),
                 downvotes=post.get('downvotes', 0),
-                commentsCount=post.get('commentsCount', 0),
+                commentsCount=comments_count,
                 isPinned=post.get('isPinned', False),
                 isNSFW=post.get('isNSFW', False),
                 isSpoiler=post.get('isSpoiler', False),
@@ -352,10 +368,43 @@ class FeedService:
     def _get_author_name(self, author_id: str) -> str:
         """Get author name by ID."""
         try:
+            # First try to get by userId (for user_ format)
             response = self.users_table.get_item(Key={'userId': author_id})
-            return response.get('Item', {}).get('username', f'user-{author_id}')
+            item = response.get('Item', {})
+            if item:
+                # Try to get displayName first, then username, then fallback to ID
+                return item.get('displayName') or item.get('username', 'Unknown')
+            
+            # If not found and author_id looks like Cognito user ID, try to find by cognitoUserId
+            if not author_id.startswith('user_'):
+                try:
+                    response = self.users_table.scan(
+                        FilterExpression='cognitoUserId = :cognito_id',
+                        ExpressionAttributeValues={':cognito_id': author_id}
+                    )
+                    if response['Items']:
+                        item = response['Items'][0]
+                        return item.get('displayName') or item.get('username', 'Unknown')
+                except ClientError:
+                    pass
+            
+            return 'Unknown'
         except ClientError:
-            return f'user-{author_id}'
+            return 'Unknown'
+    
+    def _get_post_comments_count(self, post_id: str) -> int:
+        """Get actual comments count for a post."""
+        try:
+            # Query comments table to count comments for this post
+            response = self.comments_table.query(
+                IndexName='PostIndex',
+                KeyConditionExpression='postId = :post_id',
+                ExpressionAttributeValues={':post_id': post_id},
+                Select='COUNT'
+            )
+            return response.get('Count', 0)
+        except ClientError:
+            return 0
     
     def _clear_user_feed(self, user_id: str) -> None:
         """Clear user's existing feed items."""
@@ -500,7 +549,7 @@ class FeedService:
             if not response['Items']:
                 return 0.0
             
-            total_score = sum(item['postScore'] for item in response['Items'])
+            total_score = sum(float(item['postScore']) for item in response['Items'])
             return total_score / len(response['Items'])
         except ClientError:
             return 0.0
