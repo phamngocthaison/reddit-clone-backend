@@ -139,6 +139,7 @@ class PostResponse(BaseModel):
     author_id: str
     author_username: str
     subreddit_id: str
+    subreddit_name: str
     post_type: str
     url: Optional[str]
     media_urls: List[str]
@@ -529,6 +530,15 @@ async def handle_create_post(event: Dict[str, Any]) -> Dict[str, Any]:
         request = CreatePostRequest(**body)
         user_id = get_user_id_from_event(event)
         
+        # Validate subreddit exists
+        try:
+            subreddit_response = subreddits_table.get_item(Key={"subredditId": request.subreddit_id})
+            if "Item" not in subreddit_response:
+                return create_error_response(404, "SUBREDDIT_NOT_FOUND", f"Subreddit with ID '{request.subreddit_id}' not found")
+        except Exception as e:
+            logger.error(f"Error validating subreddit: {e}")
+            return create_error_response(500, "INTERNAL_ERROR", "Failed to validate subreddit")
+        
         # Generate post ID
         post_id = f"post_{int(datetime.now().timestamp())}_{uuid.uuid4().hex[:8]}"
         
@@ -569,6 +579,16 @@ async def handle_create_post(event: Dict[str, Any]) -> Dict[str, Any]:
         except:
             author_username = "Unknown"
         
+        # Get subreddit name
+        subreddit_name = "Unknown"
+        try:
+            subreddit_response = subreddits_table.get_item(Key={"subredditId": request.subreddit_id})
+            if "Item" in subreddit_response:
+                subreddit_name = subreddit_response["Item"].get("name", "Unknown")
+        except Exception as e:
+            logger.warning(f"Failed to get subreddit name: {e}")
+            subreddit_name = "Unknown"
+        
         # Create response
         post_response = PostResponse(
             post_id=post_data["postId"],
@@ -577,6 +597,7 @@ async def handle_create_post(event: Dict[str, Any]) -> Dict[str, Any]:
             author_id=post_data["authorId"],
             author_username=author_username,
             subreddit_id=post_data["subredditId"],
+            subreddit_name=subreddit_name,
             post_type=post_data["postType"],
             url=post_data["url"],
             media_urls=post_data["mediaUrls"],
@@ -659,13 +680,26 @@ async def handle_get_posts(event: Dict[str, Any]) -> Dict[str, Any]:
         elif sort_by == "score":
             posts.sort(key=lambda x: x.get("score", 0), reverse=(sort_order == "desc"))
         
-        # Get author usernames
+        # Get author usernames and subreddit names
         for post in posts:
             try:
                 user_response = users_table.get_item(Key={"userId": post["authorId"]})
                 post["authorUsername"] = user_response.get("Item", {}).get("username", "Unknown")
             except:
                 post["authorUsername"] = "Unknown"
+            
+            # Get subreddit name
+            subreddit_id = post.get("subredditId", "")
+            subreddit_name = "Unknown"
+            if subreddit_id:
+                try:
+                    subreddit_response = subreddits_table.get_item(Key={"subredditId": subreddit_id})
+                    if "Item" in subreddit_response:
+                        subreddit_name = subreddit_response["Item"].get("name", "Unknown")
+                except Exception as e:
+                    logger.warning(f"Failed to get subreddit name: {e}")
+                    subreddit_name = "Unknown"
+            post["subredditName"] = subreddit_name
         
         # Create response
         post_responses = []
@@ -677,6 +711,7 @@ async def handle_get_posts(event: Dict[str, Any]) -> Dict[str, Any]:
                 author_id=post.get("authorId", ""),
                 author_username=post.get("authorUsername", "Unknown"),
                 subreddit_id=post.get("subredditId", ""),
+                subreddit_name=post.get("subredditName", "Unknown"),
                 post_type=post.get("postType", "text"),
                 url=post.get("url", ""),
                 media_urls=post.get("mediaUrls", []),
@@ -749,13 +784,26 @@ async def handle_get_posts(event: Dict[str, Any]) -> Dict[str, Any]:
         elif sort_by == "score":
             posts.sort(key=lambda x: x.get("score", 0), reverse=(sort_order == "desc"))
         
-        # Get author usernames
+        # Get author usernames and subreddit names
         for post in posts:
             try:
                 user_response = users_table.get_item(Key={"userId": post["authorId"]})
                 post["authorUsername"] = user_response.get("Item", {}).get("username", "Unknown")
             except:
                 post["authorUsername"] = "Unknown"
+            
+            # Get subreddit name
+            subreddit_id = post.get("subredditId", "")
+            subreddit_name = "Unknown"
+            if subreddit_id:
+                try:
+                    subreddit_response = subreddits_table.get_item(Key={"subredditId": subreddit_id})
+                    if "Item" in subreddit_response:
+                        subreddit_name = subreddit_response["Item"].get("name", "Unknown")
+                except Exception as e:
+                    logger.warning(f"Failed to get subreddit name: {e}")
+                    subreddit_name = "Unknown"
+            post["subredditName"] = subreddit_name
         
         # Create response
         post_responses = []
@@ -767,6 +815,7 @@ async def handle_get_posts(event: Dict[str, Any]) -> Dict[str, Any]:
                 author_id=post.get("authorId", ""),
                 author_username=post.get("authorUsername", "Unknown"),
                 subreddit_id=post.get("subredditId", ""),
+                subreddit_name=post.get("subredditName", "Unknown"),
                 post_type=post.get("postType", "text"),
                 url=post.get("url", ""),
                 media_urls=post.get("mediaUrls", []),
@@ -838,13 +887,26 @@ async def handle_get_posts(event: Dict[str, Any]) -> Dict[str, Any]:
         elif request.sort_by == "score":
             posts.sort(key=lambda x: x.get("score", 0), reverse=(request.sort_order == "desc"))
         
-        # Get author usernames
+        # Get author usernames and subreddit names
         for post in posts:
             try:
                 user_response = users_table.get_item(Key={"userId": post["authorId"]})
                 post["authorUsername"] = user_response.get("Item", {}).get("username", "Unknown")
             except:
                 post["authorUsername"] = "Unknown"
+            
+            # Get subreddit name
+            subreddit_id = post.get("subredditId", "")
+            subreddit_name = "Unknown"
+            if subreddit_id:
+                try:
+                    subreddit_response = subreddits_table.get_item(Key={"subredditId": subreddit_id})
+                    if "Item" in subreddit_response:
+                        subreddit_name = subreddit_response["Item"].get("name", "Unknown")
+                except Exception as e:
+                    logger.warning(f"Failed to get subreddit name: {e}")
+                    subreddit_name = "Unknown"
+            post["subredditName"] = subreddit_name
         
         # Create response
         post_responses = []
@@ -856,6 +918,7 @@ async def handle_get_posts(event: Dict[str, Any]) -> Dict[str, Any]:
                 author_id=post.get("authorId", ""),
                 author_username=post.get("authorUsername", "Unknown"),
                 subreddit_id=post.get("subredditId", ""),
+                subreddit_name=post.get("subredditName", "Unknown"),
                 post_type=post.get("postType", "text"),
                 url=post.get("url", ""),
                 media_urls=post.get("mediaUrls", []),
@@ -1251,13 +1314,26 @@ async def handle_get_posts(event: Dict[str, Any]) -> Dict[str, Any]:
         elif sort_by == "score":
             posts.sort(key=lambda x: x.get("score", 0), reverse=(sort_order == "desc"))
         
-        # Get author usernames
+        # Get author usernames and subreddit names
         for post in posts:
             try:
                 user_response = users_table.get_item(Key={"userId": post["authorId"]})
                 post["authorUsername"] = user_response.get("Item", {}).get("username", "Unknown")
             except:
                 post["authorUsername"] = "Unknown"
+            
+            # Get subreddit name
+            subreddit_id = post.get("subredditId", "")
+            subreddit_name = "Unknown"
+            if subreddit_id:
+                try:
+                    subreddit_response = subreddits_table.get_item(Key={"subredditId": subreddit_id})
+                    if "Item" in subreddit_response:
+                        subreddit_name = subreddit_response["Item"].get("name", "Unknown")
+                except Exception as e:
+                    logger.warning(f"Failed to get subreddit name: {e}")
+                    subreddit_name = "Unknown"
+            post["subredditName"] = subreddit_name
         
         # Create response
         post_responses = []
@@ -1269,6 +1345,7 @@ async def handle_get_posts(event: Dict[str, Any]) -> Dict[str, Any]:
                 author_id=post.get("authorId", ""),
                 author_username=post.get("authorUsername", "Unknown"),
                 subreddit_id=post.get("subredditId", ""),
+                subreddit_name=post.get("subredditName", "Unknown"),
                 post_type=post.get("postType", "text"),
                 url=post.get("url", ""),
                 media_urls=post.get("mediaUrls", []),
