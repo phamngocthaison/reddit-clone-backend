@@ -978,6 +978,16 @@ async def handle_get_post_by_id(event: Dict[str, Any]) -> Dict[str, Any]:
         except:
             author_username = "Unknown"
         
+        # Get subreddit name
+        subreddit_name = "Unknown"
+        try:
+            subreddit_response = subreddits_table.get_item(Key={"subredditId": post["subredditId"]})
+            if "Item" in subreddit_response:
+                subreddit_name = subreddit_response["Item"].get("name", "Unknown")
+        except Exception as e:
+            logger.warning(f"Failed to get subreddit name: {e}")
+            subreddit_name = "Unknown"
+        
         # Create response
         post_response = PostResponse(
             post_id=post["postId"],
@@ -986,6 +996,7 @@ async def handle_get_post_by_id(event: Dict[str, Any]) -> Dict[str, Any]:
             author_id=post["authorId"],
             author_username=author_username,
             subreddit_id=post["subredditId"],
+            subreddit_name=subreddit_name,
             post_type=post["postType"],
             url=post["url"],
             media_urls=post["mediaUrls"],

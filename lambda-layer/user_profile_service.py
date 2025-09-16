@@ -296,8 +296,16 @@ class UserProfileService:
                     if hasattr(value, 'as_tuple'):  # Decimal object
                         post[key] = int(value) if value % 1 == 0 else float(value)
             
-            # Convert all post keys to snake_case
-            converted_posts = [convert_dict_keys_to_snake_case(post) for post in paginated_posts]
+            # Add subreddit names and convert all post keys to snake_case
+            converted_posts = []
+            for post in paginated_posts:
+                # Get subreddit name
+                subreddit_name = self._get_subreddit_name(post.get('subredditId'))
+                post['subredditName'] = subreddit_name
+                
+                # Convert to snake_case
+                converted_post = convert_dict_keys_to_snake_case(post)
+                converted_posts.append(converted_post)
             
             return UserPostsResponse(
                 posts=converted_posts,
@@ -311,6 +319,21 @@ class UserProfileService:
         except ClientError as e:
             logger.error(f"Error getting user posts: {e}")
             raise ValueError("Failed to retrieve user posts")
+    
+    def _get_subreddit_name(self, subreddit_id: str) -> str:
+        """Get subreddit name from subreddit ID."""
+        try:
+            if not subreddit_id:
+                return "Unknown"
+            
+            response = self.subreddits_table.get_item(Key={"subredditId": subreddit_id})
+            if "Item" in response:
+                return response["Item"].get("name", "Unknown")
+            
+            return "Unknown"
+        except Exception as e:
+            logger.warning(f"Failed to get subreddit name for {subreddit_id}: {e}")
+            return "Unknown"
     
     async def get_user_comments(self, user_id: str, request: GetUserCommentsRequest) -> UserCommentsResponse:
         """Get user comments."""

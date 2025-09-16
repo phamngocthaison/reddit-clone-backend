@@ -33,7 +33,7 @@ class AWSClients:
         if self.users_table:
             self.users_table_resource = self.dynamodb.Table(self.users_table)
         else:
-            raise ValueError("USERS_TABLE environment variable is required")
+            raise ValueError("USERS_TABLE_NAME environment variable is required")
 
         self._initialized = True
 

@@ -454,14 +454,105 @@ class SubredditService:
             # Convert Decimal objects to int/float for JSON serialization
             posts = convert_decimals(posts)
             
+            # Add author usernames, subreddit names and convert to snake_case
+            processed_posts = []
+            for post in posts:
+                # Get author username
+                author_username = self._get_author_username(post.get('authorId'))
+                
+                # Get subreddit name
+                subreddit_name = self._get_subreddit_name(post.get('subredditId'))
+                
+                # Add author username and subreddit name to post
+                post['authorUsername'] = author_username
+                post['subredditName'] = subreddit_name
+                
+                # Convert to snake_case
+                post_snake_case = self._convert_post_to_snake_case(post)
+                processed_posts.append(post_snake_case)
+            
             return {
-                'posts': posts,
-                'count': len(posts),
+                'posts': processed_posts,
+                'count': len(processed_posts),
                 'subreddit_id': subreddit_id
             }
 
         except ClientError as e:
             raise Exception(f"Failed to get subreddit posts: {str(e)}")
+
+    def _get_author_username(self, author_id: str) -> str:
+        """Get author username from author ID."""
+        try:
+            if not author_id:
+                return "Unknown"
+            
+            # Check if it's a database user ID (starts with 'user_')
+            if author_id.startswith('user_'):
+                response = self.users_table.get_item(Key={"userId": author_id})
+                user_data = response.get("Item")
+                if user_data:
+                    return user_data.get("username", "Unknown")
+            
+            # Check if it's a Cognito User ID (UUID format)
+            elif len(author_id) == 36 and '-' in author_id:
+                # Try to find user by cognitoUserId
+                response = self.users_table.scan(
+                    FilterExpression="cognitoUserId = :cognito_id",
+                    ExpressionAttributeValues={":cognito_id": author_id}
+                )
+                if response.get('Items'):
+                    return response['Items'][0].get('username', 'Unknown')
+            
+            return "Unknown"
+            
+        except Exception as e:
+            logger.error(f"Error getting author username: {e}")
+            return "Unknown"
+
+    def _get_subreddit_name(self, subreddit_id: str) -> str:
+        """Get subreddit name from subreddit ID."""
+        try:
+            if not subreddit_id:
+                return "Unknown"
+            
+            response = self.subreddits_table.get_item(Key={"subredditId": subreddit_id})
+            if "Item" in response:
+                return response["Item"].get("name", "Unknown")
+            
+            return "Unknown"
+        except Exception as e:
+            logger.warning(f"Failed to get subreddit name for {subreddit_id}: {e}")
+            return "Unknown"
+
+    def _convert_post_to_snake_case(self, post: Dict[str, Any]) -> Dict[str, Any]:
+        """Convert post fields from camelCase to snake_case."""
+        snake_case_post = {}
+        
+        # Field mapping from camelCase to snake_case
+        field_mapping = {
+            'postId': 'post_id',
+            'authorId': 'author_id',
+            'authorUsername': 'author_username',
+            'subredditId': 'subreddit_id',
+            'subredditName': 'subreddit_name',
+            'postType': 'post_type',
+            'mediaUrls': 'media_urls',
+            'commentCount': 'comment_count',
+            'viewCount': 'view_count',
+            'createdAt': 'created_at',
+            'updatedAt': 'updated_at',
+            'isDeleted': 'is_deleted',
+            'isLocked': 'is_locked',
+            'isSticky': 'is_sticky',
+            'isNsfw': 'is_nsfw',
+            'isSpoiler': 'is_spoiler'
+        }
+        
+        for key, value in post.items():
+            snake_key = field_mapping.get(key, key)
+            snake_case_post[snake_key] = value
+            
+        return snake_case_post
 
     def add_moderator(self, subreddit_id: str, request: ModeratorRequest, user_id: str) -> bool:
         """Add moderator to subreddit."""
