@@ -738,6 +738,17 @@ async def handle_update_comment(event: Dict[str, Any]) -> Dict[str, Any]:
         except:
             updated_comment["authorUsername"] = "Unknown"
         
+        # Get subreddit info
+        subreddit_id = updated_comment.get("subredditId")
+        subreddit_name = "Unknown"
+        if subreddit_id:
+            try:
+                subreddit_response = subreddits_table.get_item(Key={"subredditId": subreddit_id})
+                if "Item" in subreddit_response:
+                    subreddit_name = subreddit_response["Item"].get("name", "Unknown")
+            except:
+                subreddit_name = "Unknown"
+        
         # Create response
         comment_response = CommentResponse(
             comment_id=updated_comment["commentId"],
@@ -745,6 +756,8 @@ async def handle_update_comment(event: Dict[str, Any]) -> Dict[str, Any]:
             author_id=updated_comment["authorId"],
             author_username=updated_comment["authorUsername"],
             post_id=updated_comment["postId"],
+            subreddit_id=subreddit_id,
+            subreddit_name=subreddit_name,
             parent_comment_id=updated_comment.get("parentCommentId"),
             comment_type=updated_comment["commentType"],
             media_urls=updated_comment.get("mediaUrls", []),

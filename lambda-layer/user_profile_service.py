@@ -60,6 +60,7 @@ class UserProfileService:
         self.users_table = self.aws_clients.get_users_table()
         self.posts_table = self.aws_clients.dynamodb.Table(os.getenv("POSTS_TABLE_NAME"))
         self.comments_table = self.aws_clients.dynamodb.Table(os.getenv("COMMENTS_TABLE_NAME"))
+        self.subreddits_table = self.aws_clients.dynamodb.Table(os.getenv("SUBREDDITS_TABLE_NAME"))
         self.cognito_client = self.aws_clients.get_cognito_client()
     
     async def calculate_user_stats(self, user_id: str) -> tuple[int, int]:
