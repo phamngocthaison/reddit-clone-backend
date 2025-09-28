@@ -306,21 +306,21 @@ graph TB
     end
     
     subgraph "Security Layers"
-        WAF[WAF<br/>Web Application Firewall<br/>• DDoS Protection<br/>• Bot Detection<br/>• Rate Limiting]
-        CORS[CORS Policy<br/>Cross-Origin Resource Sharing<br/>• Allowed Origins<br/>• Allowed Methods<br/>• Allowed Headers]
-        AUTH[Authentication<br/>AWS Cognito<br/>• JWT Tokens<br/>• Password Policy<br/>• MFA Support]
-        IAM[IAM Roles<br/>Identity & Access Management<br/>• Least Privilege<br/>• Service Permissions<br/>• Resource Access]
+        WAF["WAF - Web Application Firewall<br/>DDoS Protection, Bot Detection, Rate Limiting"]
+        CORS["CORS Policy<br/>Cross-Origin Resource Sharing<br/>Allowed Origins, Methods, Headers"]
+        AUTH["Authentication - AWS Cognito<br/>JWT Tokens, Password Policy, MFA Support"]
+        IAM["IAM Roles - Identity & Access Management<br/>Least Privilege, Service Permissions"]
     end
     
     subgraph "Data Protection"
-        ENCRYPT[Encryption<br/>• Data at Rest (DynamoDB)<br/>• Data in Transit (HTTPS)<br/>• Key Management (KMS)]
-        VALID[Input Validation<br/>• Pydantic Models<br/>• Data Sanitization<br/>• SQL Injection Prevention]
-        LOG[Audit Logging<br/>• CloudWatch Logs<br/>• API Gateway Logs<br/>• Lambda Execution Logs]
+        ENCRYPT["Encryption<br/>Data at Rest (DynamoDB)<br/>Data in Transit (HTTPS)<br/>Key Management (KMS)"]
+        VALID["Input Validation<br/>Pydantic Models<br/>Data Sanitization<br/>SQL Injection Prevention"]
+        LOG["Audit Logging<br/>CloudWatch Logs<br/>API Gateway Logs<br/>Lambda Execution Logs"]
     end
     
     subgraph "Monitoring & Alerting"
-        CW[CloudWatch<br/>• Security Metrics<br/>• Anomaly Detection<br/>• Real-time Alerts]
-        XRAY[X-Ray Tracing<br/>• Request Flow<br/>• Performance Monitoring<br/>• Error Tracking]
+        CW["CloudWatch<br/>Security Metrics<br/>Anomaly Detection<br/>Real-time Alerts"]
+        XRAY["X-Ray Tracing<br/>Request Flow<br/>Performance Monitoring<br/>Error Tracking"]
     end
     
     %% Threat to Security Flow
@@ -516,6 +516,243 @@ graph TB
     class SERVICES,HOOKS logicStyle
     class API,CACHE dataStyle
     class LAZY,MEMO perfStyle
+```
+
+## 📊 Data Model Architecture
+
+```mermaid
+graph TB
+    subgraph "Core Entities"
+        USER[User Entity<br/>• user_id (PK)<br/>• username, email<br/>• profile data<br/>• authentication info]
+        POST[Post Entity<br/>• post_id (PK)<br/>• title, content<br/>• author_id (FK)<br/>• subreddit_id (FK)<br/>• voting data]
+        COMMENT[Comment Entity<br/>• comment_id (PK)<br/>• content<br/>• author_id (FK)<br/>• post_id (FK)<br/>• parent_comment_id (FK)]
+        SUBREDDIT[Subreddit Entity<br/>• subreddit_id (PK)<br/>• name, display_name<br/>• owner_id (FK)<br/>• community settings]
+    end
+    
+    subgraph "Relationship Tables"
+        SUBSCRIPTION[Subscription Table<br/>• subscription_id (PK)<br/>• user_id (FK)<br/>• subreddit_id (FK)<br/>• subscription_date]
+        USER_FEED[User Feed Table<br/>• feed_id (PK)<br/>• user_id (FK)<br/>• post_id (FK)<br/>• score, timestamp]
+    end
+    
+    subgraph "Data Access Patterns"
+        QUERY1[Query Pattern 1<br/>Get User Posts<br/>GSI: AuthorIndex]
+        QUERY2[Query Pattern 2<br/>Get Subreddit Posts<br/>GSI: SubredditIndex]
+        QUERY3[Query Pattern 3<br/>Get Post Comments<br/>GSI: PostIndex]
+        QUERY4[Query Pattern 4<br/>Get User Feed<br/>GSI: UserFeedIndex]
+    end
+    
+    %% Entity Relationships
+    USER -->|creates| POST
+    USER -->|writes| COMMENT
+    USER -->|owns| SUBREDDIT
+    USER -->|subscribes| SUBSCRIPTION
+    USER -->|has| USER_FEED
+    
+    SUBREDDIT -->|contains| POST
+    SUBREDDIT -->|has| SUBSCRIPTION
+    
+    POST -->|has| COMMENT
+    POST -->|appears_in| USER_FEED
+    
+    COMMENT -->|replies_to| COMMENT
+    
+    %% Query Patterns
+    QUERY1 --> USER
+    QUERY1 --> POST
+    QUERY2 --> SUBREDDIT
+    QUERY2 --> POST
+    QUERY3 --> POST
+    QUERY3 --> COMMENT
+    QUERY4 --> USER
+    QUERY4 --> USER_FEED
+    
+    %% Styling
+    classDef entityStyle fill:#e8f5e8,stroke:#2e7d32,stroke-width:2px
+    classDef relationStyle fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    classDef queryStyle fill:#fff3e0,stroke:#ef6c00,stroke-width:2px
+    
+    class USER,POST,COMMENT,SUBREDDIT entityStyle
+    class SUBSCRIPTION,USER_FEED relationStyle
+    class QUERY1,QUERY2,QUERY3,QUERY4 queryStyle
+```
+
+## 🗃️ Data Model Details
+
+### **User Model**
+```json
+{
+  "user_id": "user_1234567890_abcdef",
+  "username": "johndoe",
+  "email": "john@example.com",
+  "display_name": "John Doe",
+  "bio": "Software Developer",
+  "avatar": "https://s3.amazonaws.com/avatars/user_123.jpg",
+  "is_public": true,
+  "created_at": "2024-01-01T00:00:00Z",
+  "updated_at": "2024-01-01T00:00:00Z",
+  "cognito_user_id": "cognito-uuid-123",
+  "email_verified": true,
+  "last_login": "2024-01-01T12:00:00Z"
+}
+```
+
+### **Post Model**
+```json
+{
+  "post_id": "post_1234567890_abcdef",
+  "title": "My First Post",
+  "content": "This is the content of my post",
+  "author_id": "user_1234567890_abcdef",
+  "author_username": "johndoe",
+  "subreddit_id": "subreddit_1234567890_abcdef",
+  "subreddit_name": "programming",
+  "post_type": "text",
+  "url": null,
+  "media_urls": ["https://s3.amazonaws.com/media/post_123.jpg"],
+  "score": 15,
+  "upvotes": 20,
+  "downvotes": 5,
+  "comment_count": 8,
+  "view_count": 150,
+  "is_nsfw": false,
+  "is_spoiler": false,
+  "flair": "Discussion",
+  "tags": ["programming", "tutorial"],
+  "created_at": "2024-01-01T00:00:00Z",
+  "updated_at": "2024-01-01T00:00:00Z",
+  "is_deleted": false,
+  "is_locked": false,
+  "is_sticky": false
+}
+```
+
+### **Comment Model**
+```json
+{
+  "comment_id": "comment_1234567890_abcdef",
+  "content": "Great post! Thanks for sharing.",
+  "author_id": "user_1234567890_abcdef",
+  "author_username": "johndoe",
+  "post_id": "post_1234567890_abcdef",
+  "subreddit_id": "subreddit_1234567890_abcdef",
+  "subreddit_name": "programming",
+  "parent_comment_id": null,
+  "comment_type": "comment",
+  "score": 5,
+  "upvotes": 7,
+  "downvotes": 2,
+  "is_nsfw": false,
+  "is_spoiler": false,
+  "flair": "Support",
+  "tags": ["positive", "feedback"],
+  "created_at": "2024-01-01T00:00:00Z",
+  "updated_at": "2024-01-01T00:00:00Z",
+  "is_deleted": false,
+  "depth": 0
+}
+```
+
+### **Subreddit Model**
+```json
+{
+  "subreddit_id": "subreddit_1234567890_abcdef",
+  "name": "programming",
+  "display_name": "Programming",
+  "description": "A community for programmers to discuss coding",
+  "rules": [
+    "Be respectful and civil",
+    "No spam or self-promotion",
+    "Use descriptive titles"
+  ],
+  "owner_id": "user_1234567890_abcdef",
+  "moderators": ["user_1234567890_abcdef"],
+  "subscriber_count": 1000,
+  "post_count": 500,
+  "primary_color": "#FF6B35",
+  "secondary_color": "#F7F7F7",
+  "icon": "https://s3.amazonaws.com/icons/programming.png",
+  "banner": "https://s3.amazonaws.com/banners/programming.jpg",
+  "is_private": false,
+  "is_nsfw": false,
+  "is_restricted": false,
+  "language": "en",
+  "country": "US",
+  "created_at": "2024-01-01T00:00:00Z",
+  "updated_at": "2024-01-01T00:00:00Z"
+}
+```
+
+### **Database Indexes**
+
+#### **Primary Indexes**
+- **Users Table**: `user_id` (Partition Key)
+- **Posts Table**: `post_id` (Partition Key)
+- **Comments Table**: `comment_id` (Partition Key)
+- **Subreddits Table**: `subreddit_id` (Partition Key)
+
+#### **Global Secondary Indexes (GSI)**
+- **Users Table**:
+  - `UsernameIndex`: `username` (Partition Key)
+  - `EmailIndex`: `email` (Partition Key)
+- **Posts Table**:
+  - `AuthorIndex`: `author_id` (Partition Key), `created_at` (Sort Key)
+  - `SubredditIndex`: `subreddit_id` (Partition Key), `created_at` (Sort Key)
+  - `ScoreIndex`: `score` (Partition Key), `created_at` (Sort Key)
+- **Comments Table**:
+  - `PostIndex`: `post_id` (Partition Key), `created_at` (Sort Key)
+  - `AuthorIndex`: `author_id` (Partition Key), `created_at` (Sort Key)
+  - `ParentIndex`: `parent_comment_id` (Partition Key), `created_at` (Sort Key)
+- **Subreddits Table**:
+  - `NameIndex`: `name` (Partition Key)
+  - `OwnerIndex`: `owner_id` (Partition Key), `created_at` (Sort Key)
+
+### **Query Patterns**
+
+#### **1. Get User Posts**
+```python
+# Query: Get posts by user with pagination
+response = posts_table.query(
+    IndexName='AuthorIndex',
+    KeyConditionExpression='author_id = :user_id',
+    ExpressionAttributeValues={':user_id': user_id},
+    ScanIndexForward=False,  # Sort by created_at descending
+    Limit=20
+)
+```
+
+#### **2. Get Subreddit Posts**
+```python
+# Query: Get posts from subreddit with pagination
+response = posts_table.query(
+    IndexName='SubredditIndex',
+    KeyConditionExpression='subreddit_id = :subreddit_id',
+    ExpressionAttributeValues={':subreddit_id': subreddit_id},
+    ScanIndexForward=False,
+    Limit=20
+)
+```
+
+#### **3. Get Post Comments**
+```python
+# Query: Get comments for a post
+response = comments_table.query(
+    IndexName='PostIndex',
+    KeyConditionExpression='post_id = :post_id',
+    ExpressionAttributeValues={':post_id': post_id},
+    ScanIndexForward=True,  # Sort by created_at ascending
+    Limit=50
+)
+```
+
+#### **4. Get User Feed**
+```python
+# Query: Get personalized feed for user
+response = user_feeds_table.query(
+    KeyConditionExpression='user_id = :user_id',
+    ExpressionAttributeValues={':user_id': user_id},
+    ScanIndexForward=False,
+    Limit=20
+)
 ```
 
 ---
