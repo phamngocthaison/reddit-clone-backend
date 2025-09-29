@@ -523,22 +523,56 @@ graph TB
 ```mermaid
 graph TB
     subgraph "Core Entities"
-        USER[User Entity<br/>• user_id (PK)<br/>• username, email<br/>• profile data<br/>• authentication info]
-        POST[Post Entity<br/>• post_id (PK)<br/>• title, content<br/>• author_id (FK)<br/>• subreddit_id (FK)<br/>• voting data]
-        COMMENT[Comment Entity<br/>• comment_id (PK)<br/>• content<br/>• author_id (FK)<br/>• post_id (FK)<br/>• parent_comment_id (FK)]
-        SUBREDDIT[Subreddit Entity<br/>• subreddit_id (PK)<br/>• name, display_name<br/>• owner_id (FK)<br/>• community settings]
+        USER["User Entity
+        • user_id (PK)
+        • username, email
+        • profile data
+        • authentication info"]
+        POST["Post Entity
+        • post_id (PK)
+        • title, content
+        • author_id (FK)
+        • subreddit_id (FK)
+        • voting data"]
+        COMMENT["Comment Entity
+        • comment_id (PK)
+        • content
+        • author_id (FK)
+        • post_id (FK)
+        • parent_comment_id (FK)"]
+        SUBREDDIT["Subreddit Entity
+        • subreddit_id (PK)
+        • name, display_name
+        • owner_id (FK)
+        • community settings"]
     end
     
     subgraph "Relationship Tables"
-        SUBSCRIPTION[Subscription Table<br/>• subscription_id (PK)<br/>• user_id (FK)<br/>• subreddit_id (FK)<br/>• subscription_date]
-        USER_FEED[User Feed Table<br/>• feed_id (PK)<br/>• user_id (FK)<br/>• post_id (FK)<br/>• score, timestamp]
+        SUBSCRIPTION["Subscription Table
+        • subscription_id (PK)
+        • user_id (FK)
+        • subreddit_id (FK)
+        • subscription_date"]
+        USER_FEED["User Feed Table
+        • feed_id (PK)
+        • user_id (FK)
+        • post_id (FK)
+        • score, timestamp"]
     end
     
     subgraph "Data Access Patterns"
-        QUERY1[Query Pattern 1<br/>Get User Posts<br/>GSI: AuthorIndex]
-        QUERY2[Query Pattern 2<br/>Get Subreddit Posts<br/>GSI: SubredditIndex]
-        QUERY3[Query Pattern 3<br/>Get Post Comments<br/>GSI: PostIndex]
-        QUERY4[Query Pattern 4<br/>Get User Feed<br/>GSI: UserFeedIndex]
+        QUERY1["Query Pattern 1
+        Get User Posts
+        GSI: AuthorIndex"]
+        QUERY2["Query Pattern 2
+        Get Subreddit Posts
+        GSI: SubredditIndex"]
+        QUERY3["Query Pattern 3
+        Get Post Comments
+        GSI: PostIndex"]
+        QUERY4["Query Pattern 4
+        Get User Feed
+        GSI: UserFeedIndex"]
     end
     
     %% Entity Relationships
